@@ -88,32 +88,11 @@ module QuickWrap
 
     def register_pull_to_refresh_handler(block)
       @col_view.addPullToRefreshWithActionHandler block
-      @col_view.pullToRefreshView.titles = ['Pull to update flashes...', 'Release to update flashes...', 'Updating flashes...']
+      @col_view.pullToRefreshView.titles = ['Pull to update...', 'Release to update...', 'Updating...']
       @col_view.pullToRefreshView.titleLabel.qw_font 'Avenir-Book', 14
     end
 
     def observe_app_events
-      # events
-      App.delegate.on(:collection, self) {|s, data|
-        case s
-        when :updated
-          handle_collection_updated(data)
-        when :deleted
-          handle_collection_deleted(data)
-        when :posts_updated
-          handle_collection_posts_updated(data)
-        end
-      }
-      App.delegate.on(:post, self) {|s, data|
-        case s
-        when :created
-          handle_post_created(data)
-        when :updated, :loaded
-          handle_post_updated(data)
-        when :deleted
-          handle_post_deleted(data)
-        end
-      }
     end
 
     def unobserve_app_events
@@ -164,6 +143,18 @@ module QuickWrap
 
     def col_view
       @col_view
+    end
+
+    def handle_row_data(data)
+      self.rows.select{|r| r[:id] == data['id']}.each do |r|
+        r[:model].handle_data(data)
+      end
+      self.reload_data
+    end
+
+    def delete_row(row_id)
+      self.rows.delete_if{|r| r[:id] == row_id}
+      self.reload_data
     end
 
     ## INTERACTIONS
@@ -240,6 +231,11 @@ module QuickWrap
       return opts[:cell_class].cell_height(scope, width)
     end
 
+    def scroll_to_bottom
+      offset = @col_view.contentSize.height - @col_view.size.height
+      @col_view.setContentOffset([0, offset], animated: true)
+    end
+
     ## CVCUSTOMLAYOUT
     class CVCustomLayout < UICollectionViewLayout
 
@@ -261,6 +257,8 @@ module QuickWrap
 
       def prepareLayout
         super 
+        @max_height = 0
+
         cv = self.collectionView
         return if cv.numberOfSections == 0
         item_count = cv.numberOfItemsInSection(0)

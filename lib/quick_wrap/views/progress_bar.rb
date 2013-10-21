@@ -27,7 +27,8 @@ module QuickWrap
     end
 
     def progress_width
-      (@progress * (self.frame.size.width - 6)).to_i
+      ret = (@progress * (self.frame.size.width - 6)).to_i
+      return [ret, 1].max
     end
 
   end

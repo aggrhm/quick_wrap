@@ -10,7 +10,8 @@ module QuickWrap
 
     end
 
-    def add_to_queue(task_block, job_del, opts, job_opts)
+    def add_to_queue(task_block, job_del, opts)
+      job_opts = opts[:job_opts] || {}
       job = Job.new(self)
       job.image = opts[:image]
       job.run_block = task_block
@@ -107,6 +108,9 @@ module QuickWrap
 
       @img_cancel = UIImageView.new.qw_subview(self) {|v|
         v.image = UIImage.imageNamed 'quick_wrap/close-white'
+        v.when_tapped {
+          self.hide_view
+        }
       }
       return self
     end
@@ -115,8 +119,26 @@ module QuickWrap
       vw = self.size.width
       vh = self.size.height
 
-      @prog_bar.qw_frame_rel :right_of, @img_view, 10, vh/2 - 10, -30, 10
+      @prog_bar.qw_frame_rel :right_of, @img_view, 10, vh/2 - 5, -30, 10
       @img_cancel.qw_frame_rel :right_of, @prog_bar, 5, -5, 20, 20
+    end
+
+    def runner=(runner)
+      QuickWrap.log "JOBVIEW : setting runner to #{runner.inspect}"
+      if !runner.nil?
+        @runner = runner
+        self.set_job(@runner.running_job)
+        @runner.on(:job_starting, self) {|job|
+          self.set_job(job)
+        }
+      else
+        @runner.off(:all, self) if @runner
+        @runner = nil
+      end
+    end
+
+    def runner
+      @runner
     end
 
     def set_job(job)

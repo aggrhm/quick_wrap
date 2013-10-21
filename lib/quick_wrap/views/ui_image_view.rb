@@ -56,7 +56,7 @@ class UIImageView
 
   def load_from_url(url, croppedTo: targetSize)
     self.load_from_url(url) do |img|
-      img.imageCroppedToFitSize(targetSize) if img
+      img.qw_crop(targetSize) if img
     end
   end
 

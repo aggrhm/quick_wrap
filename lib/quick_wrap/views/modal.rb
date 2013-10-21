@@ -57,6 +57,22 @@ module QuickWrap
       @lbl_hdr_title.text = title
     end
 
+    def static=(val)
+      @modal_opts[:static] = val
+    end
+
+    def show_header=(val)
+      @modal_opts[:show_header] = val
+    end
+
+    def show_close=(val)
+      @modal_opts[:show_close] = val
+    end
+
+    def position=(val)
+      @modal_opts.merge!(val)
+    end
+
     def set_modal_opts(opts)
       @modal_opts = opts
     end
@@ -74,6 +90,7 @@ module QuickWrap
     def show
       #window = UIApplication.sharedApplication.keyWindow
       self.will_show
+      self.reset_frame
       self.alpha = 0.0
       self.parent.addSubview(self)
       UIView.animateWithDuration(0.2,
@@ -109,12 +126,18 @@ module QuickWrap
     def did_load
       #self.qw_frame 0, 0, 0, 0, self.parent
       self.when_tapped { self.hide } unless @modal_opts[:static]
-      @img_close.hidden = @modal_opts[:static] == true
-      @lbl_hdr_title.hidden = @modal_opts[:hide_header] == true
+      show_close = !@modal_opts[:static] && @modal_opts[:show_close] == true
+      @img_close.hidden = !show_close
+      @lbl_hdr_title.hidden = @modal_opts[:show_header] == false
       #@blur_view.hidden = @modal_opts[:blur] != true
 
       self.reset_frame
       self.layout_for_parent
+      self.build_view
+    end
+
+    def build_view
+
     end
 
     def layoutSubviews
@@ -144,18 +167,21 @@ module QuickWrap
         end
       end
       if !@modal_opts[:width].nil?
-        space = vw - @modal_opts[:width]
-        ml = mr = space / 2
+        if @modal_opts[:left].nil?
+          space = vw - @modal_opts[:width]
+          ml = mr = space / 2
+        else
+          mr = vw - ml - @modal_opts[:width]
+        end
       end
 
-      hide_header = @modal_opts[:hide_header] || true
-
+      show_header = @modal_opts[:show_header] || false
 
       #@blur_view.qw_frame 0, 0, 0, 0
 
       self.modalView.qw_frame ml, mt, -mr, -mb
       mvw = self.modalView.size.width
-      self.headerView.frame = CGRectMake(0, 0, mvw, (hide_header ? 0 : 35))
+      self.headerView.frame = CGRectMake(0, 0, mvw, (show_header ? 35 : 0))
       self.contentView.qw_frame_rel :bottom_of, self.headerView, 0, 0, 0, 0
       @lbl_hdr_title.qw_frame 5, 5, -25, -5
       @img_close.qw_frame mvw - 30, 5, 25, 25
@@ -176,7 +202,7 @@ module QuickWrap
       b = opts[:view]
       modal = self.new.tap {|v|
         v.delegate = del
-        opts[:hide_header] ||= true
+        opts[:show_header] ||= false
         opts[:static] ||= true
         opts[:width] ||= [p.frame.size.width - 10, 500].min
         #QuickWrap.log opts[:width]
@@ -214,8 +240,8 @@ module QuickWrap
         lbl = UILabel.new.qw_subview(v) {|lbl|
           lbl.qw_frame 10, @bh-40, -10, 35
           lbl.qw_text_align :center
-          lbl.qw_style :label
           lbl.qw_font 'Avenir-Black', 14
+          lbl.qw_colors :white
           lbl.text = title
           lbl.qw_multiline
         }
@@ -237,7 +263,7 @@ module QuickWrap
       p = opts[:view] || App.window
       modal = self.new.tap {|v|
         v.delegate = del
-        opts[:hide_header] ||= true
+        opts[:show_header] ||= false
         opts[:static] ||= true
         opts[:height] ||= 120
         opts[:top] ||= p.frame.origin.y

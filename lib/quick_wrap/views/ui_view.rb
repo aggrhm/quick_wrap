@@ -137,6 +137,15 @@ class UIView
     self.contentMode = UIViewContentModeScaleAspectFit
   end
 
+  def qw_content_fill
+    self.contentMode = UIViewContentModeScaleAspectFill
+    self.clipsToBounds = true
+  end
+  def qw_content_fit
+    self.contentMode = UIViewContentModeScaleAspectFit
+    self.clipsToBounds = true
+  end
+
   def qw_bgcolor(r, g, b, a=1)
     self.backgroundColor = BW.rgba_color(r, g, b, a)
   end
@@ -313,7 +322,7 @@ class UIView
       v.setTitleColor(UIColor.whiteColor, forState:UIControlStateNormal)
       v.setTitleColor(UIColor.grayColor, forState:UIControlStateHighlighted)
     when :button_red
-      v.qw_font 'Avenir-Black', 14
+      v.qw_font 'Avenir-Book', 16
       v.backgroundColor = BW.rgb_color(200, 68, 68)
       v.qw_rounded 3
       v.setTitleColor(UIColor.whiteColor, forState:UIControlStateNormal)

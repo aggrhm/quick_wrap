@@ -1,4 +1,3 @@
-puts "ACTIONSHEET LOADING"
 module QuickWrap
 
   class ActionSheet
@@ -9,13 +8,13 @@ module QuickWrap
       @sheet = UIActionSheet.alloc.initWithTitle(opts[:title], delegate: self, cancelButtonTitle: nil, destructiveButtonTitle: nil, otherButtonTitles: nil)
       @keys = []
       opts[:buttons].each {|b| self.add_button(b, b)}
-      block.call(@sheet) if block 
+      block.call(self) if block 
       self.retain
     end
 
-    def add_button(title, key, opts={})
+    def add_button(key, title, action=nil, opts={})
       @sheet.addButtonWithTitle(title)
-      @keys << key
+      @keys << {key: key, action: action, title: title}
       @sheet.cancelButtonIndex = @sheet.numberOfButtons - 1 if key == :cancel
       @sheet.destructiveButtonIndex = @sheet.numberOfButtons - 1 if opts[:destructive]
     end
@@ -25,12 +24,18 @@ module QuickWrap
     end
 
     def actionSheet(actionSheet, clickedButtonAtIndex: buttonIndex)
-      self.trigger(:response, @keys[buttonIndex], buttonIndex)
+      #self.trigger(:response, @keys[buttonIndex][:key], buttonIndex)
+      action = @keys[buttonIndex][:action]
+      action.call if action
       self.autorelease
     end
 
     def showInView(view)
       @sheet.showInView(view)
+    end
+
+    def showFromRect(rect, view)
+      @sheet.showFromRect(rect, inView: view, animated: true)
     end
 
     def sheet

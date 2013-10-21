@@ -82,4 +82,8 @@ class UIImage
     return image
   end
 
+  def qw_crop(size)
+    self.cropToSize(size, usingMode: NYXCropModeCenter)
+  end
+
 end

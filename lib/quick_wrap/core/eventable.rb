@@ -5,7 +5,7 @@ module QuickWrap
     # and be passed the arguments that are passed to
     # `trigger`.
     def on(event, sub=nil, &blk)
-      QuickWrap.log "EVENTABLE : adding #{sub.class.to_s} for :#{event}"
+      QuickWrap.log "EVENTABLE : adding #{sub.class.to_s} for #{event}"
       sub = self if sub.nil?
       opts = {block: blk, subscriber: sub}
       self.off(event, sub)
@@ -39,7 +39,7 @@ module QuickWrap
     def trigger(event, *args)
       #QuickWrap.log "EVENTABLE : triggered :#{event} on #{self.class.to_s}"
       self.events[event].each do |opts|
-        QuickWrap.log "EVENTABLE : handling :#{event} #{args.is_a?(Array) ? args.first : ""} for #{opts[:subscriber].class.to_s}"
+        QuickWrap.log "EVENTABLE : handling :#{event} for #{opts[:subscriber].class.to_s}"
         opts[:block].call(*args)
       end
     end

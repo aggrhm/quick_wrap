@@ -19,10 +19,10 @@ module QuickWrap
 
     def select_pane(key)
       self.each_pane do |pane|
-        pane.hidden = true
+        pane.qw_animate(:fade_out) if pane.isHidden == false
       end
       pane = @panes[key]
-      pane.hidden = false
+      pane.qw_animate :fade_in
       return pane
     end
 

@@ -64,3 +64,5 @@ module QuickWrap
   end
 
 end
+
+QW = QuickWrap

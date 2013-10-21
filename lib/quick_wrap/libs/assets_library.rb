@@ -14,7 +14,7 @@ module QuickWrap
     def self.each_group(types, &block)
       al = self.instance
       @enum_done = false
-      blk_using = lambda {|group, stop|
+      handler = lambda {|group, stop|
         if !group.nil?
           QuickWrap.log 'Processing group'
           ret = AssetGroupWrapper.new(group)
@@ -26,14 +26,14 @@ module QuickWrap
       blk_fail = lambda {|error|
       }
       types = types.map{|type| self.group_types[type]}.reduce{|memo, val| memo | val}
-      al.enumerateGroupsWithTypes(types, usingBlock: blk_using, failureBlock: blk_fail)
+      al.enumerateGroupsWithTypes(types, usingBlock: handler, failureBlock: blk_fail)
 
     end
 
     def list_groups(types, &block)
       al = self.instance
       groups = []
-      blk_using = lambda {|group, stop|
+      handler = lambda {|group, stop|
         if !group.nil?
           ret = AssetGroupWrapper.new(group)
           groups << ret
@@ -44,13 +44,16 @@ module QuickWrap
       blk_fail = lambda {|error|
       }
       types = types.map{|type| self.group_types[type]}.reduce{|memo, val| memo | val}
-      al.enumerateGroupsWithTypes(types, usingBlock: blk_using, failureBlock: blk_fail)
+      al.enumerateGroupsWithTypes(types, usingBlock: handler, failureBlock: blk_fail)
     end
 
     def self.each_asset(opts, &block)
       opts[:groups] = [:camera_roll]
+      opts[:limit] ||= 50
 
-      blk_using = lambda {|asset, index, stop|
+      al = self.instance
+
+      handler = lambda {|asset, index, stop|
         if !asset.nil?
           ret = AssetWrapper.new(asset)
           block.call ret
@@ -60,7 +63,17 @@ module QuickWrap
       self.each_group(opts[:groups]) do |group|
         og = group.original
         og.setAssetsFilter ALAssetsFilter.allPhotos
-        og.enumerateAssetsUsingBlock(blk_using)
+        num_assets = og.numberOfAssets
+
+        if num_assets > opts[:limit]
+          si = num_assets - opts[:limit]
+          num = opts[:limit]
+        else
+          si = 0
+          num = num_assets
+        end
+        index_range = NSIndexSet.indexSetWithIndexesInRange(NSMakeRange( si, num))
+        og.enumerateAssetsAtIndexes(index_range, options: NSEnumerationReverse, usingBlock: handler)
       end
     end
 
@@ -80,6 +93,17 @@ module QuickWrap
 
       }
       al.assetForURL(url, resultBlock: blk_result, failureBlock: blk_fail)
+    end
+
+    def self.save_image(img, &block)
+      al = self.instance
+      al.writeImageToSavedPhotosAlbum(img.CGImage, orientation: img.imageOrientation, completionBlock: lambda {|url, error|
+        if error
+          block.call(nil)
+        else
+          block.call(url)
+        end
+      })
     end
 
     class AssetGroupWrapper
@@ -116,6 +140,23 @@ module QuickWrap
       def image
         rep = @original.defaultRepresentation
         UIImage.imageWithCGImage(rep.fullResolutionImage, scale: rep.scale, orientation: rep.orientation)
+      end
+
+      def full_screen_image
+        rep = @original.defaultRepresentation
+        UIImage.imageWithCGImage(rep.fullScreenImage)
+      end
+
+      def jpeg_data
+        rep = @original.defaultRepresentation
+        sz = rep.size
+        buf = Pointer.new(:char, sz)
+        num_bytes = rep.getBytes(buf, fromOffset: 0, length: sz, error: nil)
+        if num_bytes > 0
+          return NSData.dataWithBytes(buf, length: sz)
+        else
+          return nil
+        end
       end
 
     end 
