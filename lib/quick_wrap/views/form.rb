@@ -2,11 +2,13 @@ module QuickWrap
 
   class Form < UIScrollView
 
-    attr_accessor :elements, :selected_element, :inset
+    attr_accessor :elements, :selected_element, :inset, :spacing
 
-    def add(type, key, opts={})
+    def add(type, key, opts={}, &block)
       @inset ||= UIEdgeInsetsMake(0, 0, 0, 0)
       el_cls = case type
+      when :textfield
+        FormTextField
       when :text
         FormTextView
       when :datetime
@@ -15,30 +17,50 @@ module QuickWrap
         FormButton
       when :image
         FormImage
+      when :label
+        FormLabel
       end
 
       # determine frame
-      width = opts[:width] || (self.frame.size.width - @inset.right - @inset.left)
+      width = opts[:width] || 0
       width -= @inset.right if width <= 0
       height = opts[:height] || 40
       el = el_cls.alloc.initWithFrame(CGRectZero)
-      self.elements[key] = el
+
+      # auto position
+      first_el = self.elements.empty?
+      if !first_el
+        if !opts[:bottom_of] && !opts[:right_of]
+          last_el = self.elements.values.last
+          opts[:bottom_of] = last_el.key
+        end
+      end
+      spacing = opts[:spacing] || self.spacing || 10
+
+      # add to view
       el.qw_subview(self) {|v|
         if opts[:bottom_of]
-          v.qw_frame_rel :bottom_of, self.elements[opts[:bottom_of]], 0, opts[:spacing] || 10, width, height
+          v.qw_frame_rel :bottom_of, self.elements[opts[:bottom_of]], 0, spacing, width, height
         elsif opts[:right_of]
-          v.qw_frame_rel :right_of, self.elements[opts[:right_of]], opts[:spacing] || 10, 0, width, height
+          v.qw_frame_rel :right_of, self.elements[opts[:right_of]], spacing, 0, width, height
         else
           v.qw_frame @inset.left, @inset.top, width, height
         end
       }
       el.build_view
+      el.key = key
       el.process_options(opts)
+      block.call(el) if block
+      self.elements[key] = el
       self.update_size
     end
 
     def elements
       @elements ||= {}
+    end
+
+    def [](key)
+      self.elements[key].value
     end
 
     def update_size
@@ -85,11 +107,19 @@ module QuickWrap
       end
     end
 
+    def select_next_element
+      idx = self.elements.values.index(self.selected_element)
+      el = self.elements.values[idx+1]
+      if el
+        self.handle_element_selected(el)
+      end
+    end
+
   end
 
   class FormElement < UIView
 
-    attr_accessor :options
+    attr_accessor :options, :key
 
     def build_view
 
@@ -111,7 +141,7 @@ module QuickWrap
 
     def process_options(opts)
       self.options = opts
-      self.qw_style opts[:style]
+      self.qw_style opts[:style] || self.default_style
       @img_icon.image = UIImage.imageNamed(opts[:icon]) if opts[:icon]
       @lbl_title.text = opts[:title] if opts[:title]
     end
@@ -144,6 +174,78 @@ module QuickWrap
       self.options[:on_change].call(val) if self.options[:on_change]
     end
 
+    def default_style
+      :form_element
+    end
+
+  end
+
+  class FormLabel < FormElement
+
+    def default_style
+      :form_element_label
+    end
+
+  end
+
+  class FormTextField < FormElement
+
+    def build_view
+      super
+      @txt_view = UITextField.new.qw_subview(self) {|v|
+        v.delegate = self
+        v.clearButtonMode = UITextFieldViewModeWhileEditing
+        v.contentVerticalAlignment = UIControlContentVerticalAlignmentCenter
+        v.returnKeyType = UIReturnKeyDone
+      }
+    end
+
+    def process_options(opts)
+      super
+      case opts[:type]
+      when :email
+        self.text_view.keyboardType = UIKeyboardTypeEmailAddress
+      when :password
+        self.text_view.secureTextEntry = true
+      end
+    end
+
+    def text_view
+      @txt_view
+    end
+
+    def handle_blur
+      @txt_view.resignFirstResponder
+    end
+
+    def handle_focus
+      @txt_view.becomeFirstResponder
+    end
+
+    def textFieldDidBeginEditing(tv)
+      self.form.handle_element_selected(self)
+    end
+
+    def textFieldShouldReturn(tv)
+      if tv.returnKeyType == UIReturnKeyNext
+        self.form.select_next_element
+      else
+        tv.resignFirstResponder
+      end
+    end
+
+    def value
+      @txt_view.text
+    end
+
+    def value=(val)
+      super
+      @txt_view.text = val
+    end
+
+    def default_style
+      :form_element_text
+    end
   end
 
   class FormTextView < FormElement
@@ -159,12 +261,12 @@ module QuickWrap
       @txt_view
     end
 
-    def process_options(opts)
-      super
-    end
-
     def handle_blur
       @txt_view.resignFirstResponder
+    end
+
+    def handle_focus
+      @txt_view.becomeFirstResponder
     end
 
     def textViewDidBeginEditing(tv)
@@ -179,6 +281,10 @@ module QuickWrap
       super
       @txt_view.text = val
     end
+
+    def default_style
+      :form_element_text
+    end
   end
 
   class FormButton < FormElement
@@ -192,11 +298,15 @@ module QuickWrap
     end
 
     def process_options(opts)
-      @btn.qw_style opts[:style]
+      @btn.qw_style opts[:style] || self.default_style
       @btn.setTitle(opts[:title], forState: UIControlStateNormal)
       @btn.when(UIControlEventTouchUpInside) {
         opts[:action].call
       }
+    end
+
+    def default_style
+      :button_gray
     end
   end
 
@@ -209,10 +319,6 @@ module QuickWrap
 
     def label_view
       @lbl_view
-    end
-
-    def process_options(opts)
-      super
     end
 
     def handle_focus
@@ -238,6 +344,10 @@ module QuickWrap
       when UIDatePickerModeTime
         @lbl_view.text = Time.at(@value).strftime("%l:%M %p")
       end
+    end
+
+    def default_style
+      :form_element_date
     end
   end
 
@@ -284,6 +394,10 @@ module QuickWrap
       }
       p.add_button :cancel, "Cancel"
       p.showInView(App.window)
+    end
+
+    def default_style
+      :form_element_image
     end
 
   end

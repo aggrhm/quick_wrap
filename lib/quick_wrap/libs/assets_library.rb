@@ -2,6 +2,8 @@ module QuickWrap
 
   class AssetsLibrary
 
+    puts "ALASSETSLIBRARY FOUND : DEFINING ASSETSLIBRARY"
+
 
     def self.instance
       @instance ||= ALAssetsLibrary.alloc.init

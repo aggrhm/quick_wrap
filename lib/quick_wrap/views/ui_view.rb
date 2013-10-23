@@ -337,7 +337,7 @@ class UIView
     when :button_gray
       v.qw_font 'Avenir-Book', 14
       v.backgroundColor = BW.rgb_color(236, 237, 238)
-      v.qw_rounded 5
+      v.qw_rounded 3
       v.setTitleColor(BW.rgb_color(118, 123, 133), forState:UIControlStateNormal)
       v.setTitleColor(UIColor.whiteColor, forState:UIControlStateHighlighted)
     when :button

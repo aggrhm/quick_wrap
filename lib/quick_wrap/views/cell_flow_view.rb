@@ -177,11 +177,10 @@ module QuickWrap
       return pc
     end
 
-    def collectionView(cv, layout: layout, frameForItemAtIndexPath: index_path)
+    def collectionView(cv, layout: layout, scopeForItemAtIndexPath: index_path)
       scope = self.rows[index_path.row]
-      frame = scope[:frame]
       #QuickWrap.log "#{frame.inspect} for #{scope.inspect}"
-      return frame
+      return scope
     end
 
     def handle_cell_gesture(ident, gesture, cell)
@@ -239,7 +238,7 @@ module QuickWrap
     ## CVCUSTOMLAYOUT
     class CVCustomLayout < UICollectionViewLayout
 
-      attr_accessor :inset, :spacing
+      attr_accessor :inset, :spacing, :has_sticky
 
       def init
         super
@@ -250,6 +249,7 @@ module QuickWrap
       def init_params
         self.spacing ||= 0
         self.inset ||= UIEdgeInsetsMake(0, 0, 0, 0)
+        self.has_sticky = false
         @attrs = []
         @max_height = 0
         @max_width = 0
@@ -261,19 +261,30 @@ module QuickWrap
 
         cv = self.collectionView
         return if cv.numberOfSections == 0
-        item_count = cv.numberOfItemsInSection(0)
+        item_count = cv.dataSource.collectionView(cv, numberOfItemsInSection: 0)
         return if item_count == 0
 
         @attrs = Array.new(item_count)
+        sticky = nil
+        y_offset = cv.contentOffset.y
 
         (0..(item_count-1)).each do |idx|
           index_path = NSIndexPath.indexPathForItem(idx, inSection: 0)
-          frame = cv.delegate.collectionView(cv, layout: self, frameForItemAtIndexPath: index_path)
           attr = UICollectionViewLayoutAttributes.layoutAttributesForCellWithIndexPath(index_path)
+          @attrs[idx] = attr
+          row_scope = cv.delegate.collectionView(cv, layout: self, scopeForItemAtIndexPath: index_path)
+          next if row_scope.nil?
+
+          frame = row_scope[:frame]
           attr.frame = frame
           @max_height = [@max_height, frame.origin.y + frame.size.height].max
-          @attrs[idx] = attr
+          sticky = attr if (row_scope[:sticky] && frame.origin.y < (self.inset.top + y_offset))
+          attr.zIndex = 1024 + idx if row_scope[:sticky]
         end
+
+        # Reposition sticky element. Last sticky element should be at the top
+        sticky.frame = CGRectMake(self.inset.left, y_offset + self.inset.top, sticky.frame.size.width, sticky.frame.size.height) if sticky
+
       end
 
       def layoutAttributesForElementsInRect(rect)
@@ -284,6 +295,10 @@ module QuickWrap
 
       def layoutAttributesForItemAtIndexPath(index_path)
         @attrs[index_path.item]
+      end
+
+      def shouldInvalidateLayoutForBoundsChange(bounds)
+        return true if self.has_sticky
       end
 
       def collectionViewContentSize
