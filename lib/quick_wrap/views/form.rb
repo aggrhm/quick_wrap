@@ -40,11 +40,11 @@ module QuickWrap
       # add to view
       el.qw_subview(self) {|v|
         if opts[:bottom_of]
-          v.qw_frame_rel :bottom_of, self.elements[opts[:bottom_of]], 0, spacing, width, height
+          v.qw_frame_set :rel, :bottom_of, self.elements[opts[:bottom_of]], 0, spacing, width, height
         elsif opts[:right_of]
-          v.qw_frame_rel :right_of, self.elements[opts[:right_of]], spacing, 0, width, height
+          v.qw_frame_set :rel, :right_of, self.elements[opts[:right_of]], spacing, 0, width, height
         else
-          v.qw_frame @inset.left, @inset.top, width, height
+          v.qw_frame_set :reg, @inset.left, @inset.top, width, height
         end
       }
       el.build_view
@@ -53,6 +53,12 @@ module QuickWrap
       block.call(el) if block
       self.elements[key] = el
       self.update_size
+    end
+
+    def layoutSubviews
+      super
+
+      @elements.values.each {|el| el.qw_reframe}
     end
 
     def elements
@@ -123,8 +129,10 @@ module QuickWrap
 
     def build_view
 
-      @panel_bg = UIView.new.qw_subview(self) {|v|
+      self.qw_resize :width
 
+      @panel_bg = UIView.new.qw_subview(self) {|v|
+        v.qw_resize :width
       }
 
       @img_icon = UIImageView.new.qw_subview(self) {|v|
@@ -193,6 +201,7 @@ module QuickWrap
     def build_view
       super
       @txt_view = UITextField.new.qw_subview(self) {|v|
+        v.qw_resize :width
         v.delegate = self
         v.clearButtonMode = UITextFieldViewModeWhileEditing
         v.contentVerticalAlignment = UIControlContentVerticalAlignmentCenter
@@ -253,6 +262,7 @@ module QuickWrap
     def build_view
       super
       @txt_view = UITextView.new.qw_subview(self) {|v|
+        v.qw_resize :width
         v.delegate = self
       }
     end

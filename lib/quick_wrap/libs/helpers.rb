@@ -1,4 +1,3 @@
-puts "HELPERS LOADING"
 module QuickWrap
 
   TIME_MINUTE = 60
@@ -61,6 +60,14 @@ module QuickWrap
 
   def self.label_height(text, width, font_name='Avenir-Book', font_size=12)
     body_h = text.sizeWithFont(UIFont.fontWithName(font_name, size:font_size), constrainedToSize: CGSizeMake(width, 1000), lineBreakMode: UILineBreakModeWordWrap).height
+  end
+
+  def self.to_json(obj)
+    BW::JSON.generate(obj)
+  end
+
+  def self.cache
+    @cache ||= Hash.new
   end
 
 end

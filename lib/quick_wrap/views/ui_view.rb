@@ -171,8 +171,8 @@ class UIView
 
   def qw_frame(x, y, right, bottom, parent=nil)
     parent ||= self.qw_superview
-    w = right > 0 ? right : parent.size.width - x - right.abs
-    h = bottom > 0 ? bottom : parent.size.height - y - bottom.abs
+    w = right > 0 ? right : parent.bounds.size.width - x - right.abs
+    h = bottom > 0 ? bottom : parent.bounds.size.height - y - bottom.abs
     w = 0 if w < 0
     h = 0 if h < 0
     self.frame = CGRectMake(x, y, w, h)
@@ -183,7 +183,6 @@ class UIView
   end
 
   def qw_frame_rel(pos, rel, rx, ry, w, h)
-    @qw_frame_opts = {type: :relative, origin: pos, anchor: WeakRef.new(rel), x: rx, y: ry, w: w, h: h}
     case pos
 
     when :bottom_of
@@ -198,29 +197,57 @@ class UIView
   end
 
   def qw_frame_from(pos, rx, ry, w, h)
-    @qw_frame_opts = {type: :from, origin: pos, x: rx, y: ry, w: w, h: h}
     parent = self.qw_superview
     if pos == :bottom_right
-      y = self.qw_superview.size.height - ry - h
-      x = self.qw_superview.size.width - rx - w
+      y = self.qw_superview.bounds.size.height - ry - h
+      x = self.qw_superview.bounds.size.width - rx - w
     elsif pos == :bottom_left
-      y = self.qw_superview.size.height - ry - h
+      y = self.qw_superview.bounds.size.height - ry - h
       x = rx
     elsif pos == :top_right
       y = ry
-      x = self.qw_superview.size.width - rx - w
+      x = self.qw_superview.bounds.size.width - rx - w
     end
     self.qw_frame(x, y, w, h)
+  end
+
+  def qw_frame_set(type, *args)
+    opts = {type: type}
+    case type
+    when :normal, :reg
+      opts[:x] = args[0]
+      opts[:y] = args[1]
+      opts[:w] = args[2]
+      opts[:h] = args[3]
+    when :relative, :rel
+      opts[:origin] = args[0]
+      opts[:anchor] = args[1]
+      opts[:x] = args[2]
+      opts[:y] = args[3]
+      opts[:w] = args[4]
+      opts[:h] = args[5]
+    when :from
+      opts[:origin] = args[0]
+      opts[:x] = args[1]
+      opts[:y] = args[2]
+      opts[:w] = args[3]
+      opts[:h] = args[4]
+    end
+
+    @qw_frame_opts = opts
+    self.qw_reframe
   end
 
   def qw_reframe
     fo = @qw_frame_opts
     if !fo.nil?
       case fo[:type]
-      when :relative
+      when :relative, :rel
         self.qw_frame_rel fo[:origin], fo[:anchor], fo[:x], fo[:y], fo[:w], fo[:h]
       when :from
         self.qw_frame_from fo[:origin], fo[:x], fo[:y], fo[:w], fo[:h]
+      else
+        self.qw_frame fo[:x], fo[:y], fo[:w], fo[:h]
       end
     end
   end

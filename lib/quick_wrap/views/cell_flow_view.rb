@@ -17,6 +17,15 @@ module QuickWrap
 
       @cell_registry = {}
 
+      @lbl_placeholder = UILabel.new.qw_subview(self) {|v|
+        v.qw_frame 0, 80, 0, 20
+        v.qw_resize :width
+        v.qw_font :reg_18
+        v.qw_colors UIColor.grayColor
+        v.qw_text_align :center
+        v.hidden = true
+      }
+
       @col_view = UICollectionView.alloc.initWithFrame(CGRectZero, collectionViewLayout: CVCustomLayout.new).qw_subview(self) {|v|
         v.qw_frame 0, 0, 0, 0
         v.qw_resize :height, :width
@@ -27,6 +36,7 @@ module QuickWrap
         v.collectionViewLayout.spacing = 0
         v.collectionViewLayout.inset = UIEdgeInsetsMake(0, 0, 0, 0)
       }
+
 
       @pnl_selected_scope = UIView.new.qw_subview(self) {|v|
         v.qw_frame 0, 0, 0, 40
@@ -81,6 +91,7 @@ module QuickWrap
         if @col_view.contentSize.height < @col_view.size.height
           @col_view.infiniteScrollingView.stopAnimating
         else
+          @col_view.infiniteScrollingView.startAnimating
           block.call
         end
       }
@@ -105,6 +116,7 @@ module QuickWrap
       self.build_rows
       self.position_rows
       EM.schedule_on_main { @col_view.reloadData }
+      @lbl_placeholder.hidden = self.has_data?
     end
 
     def load_initial_data
@@ -116,6 +128,7 @@ module QuickWrap
     end
 
     def show_loading
+      @lbl_placeholder.hidden = true
       QuickWrap.show_loading(self)
     end
 
@@ -123,6 +136,10 @@ module QuickWrap
       QuickWrap.hide_loading(self)
       @col_view.infiniteScrollingView.stopAnimating unless @col_view.infiniteScrollingView.nil?
       @col_view.pullToRefreshView.stopAnimating unless @col_view.pullToRefreshView.nil?
+    end
+
+    def placeholder=(val)
+      @lbl_placeholder.text = val
     end
 
     def select_scope(scope)
@@ -262,9 +279,9 @@ module QuickWrap
         cv = self.collectionView
         return if cv.numberOfSections == 0
         item_count = cv.dataSource.collectionView(cv, numberOfItemsInSection: 0)
+        @attrs = Array.new(item_count)
         return if item_count == 0
 
-        @attrs = Array.new(item_count)
         sticky = nil
         y_offset = cv.contentOffset.y
 

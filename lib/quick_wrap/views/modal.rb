@@ -238,7 +238,7 @@ module QuickWrap
           img.contentMode = UIViewContentModeScaleAspectFit
         }
         lbl = UILabel.new.qw_subview(v) {|lbl|
-          lbl.qw_frame 10, @bh-40, -10, 35
+          lbl.qw_frame 10, @bh-40, -10, 40
           lbl.qw_text_align :center
           lbl.qw_font 'Avenir-Black', 14
           lbl.qw_colors :white

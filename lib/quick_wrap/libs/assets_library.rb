@@ -108,6 +108,16 @@ module QuickWrap
       })
     end
 
+    def self.save_image_from_url(url, &block)
+      SDWebImageManager.sharedManager.downloadWithURL(url, options:0, progress:nil, completed: lambda{|img, error, cacheType, finished|
+        if img
+          self.save_image(img, &block)
+        else
+          block.call(nil)
+        end
+      })
+    end
+
     class AssetGroupWrapper
       def initialize(group)
         @original = group
@@ -139,9 +149,10 @@ module QuickWrap
         @original.defaultRepresentation.url unless @original.defaultRepresentation.nil?
       end
 
-      def image
+      def image(opts={})
         rep = @original.defaultRepresentation
-        UIImage.imageWithCGImage(rep.fullResolutionImage, scale: rep.scale, orientation: rep.orientation)
+        opts[:scale] ||= rep.scale
+        UIImage.imageWithCGImage(rep.fullResolutionImage, scale: opts[:scale], orientation: rep.orientation)
       end
 
       def full_screen_image

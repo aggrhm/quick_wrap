@@ -39,7 +39,7 @@ module QuickWrap
     def trigger(event, *args)
       #QuickWrap.log "EVENTABLE : triggered :#{event} on #{self.class.to_s}"
       self.events[event].each do |opts|
-        QuickWrap.log "EVENTABLE : handling :#{event} for #{opts[:subscriber].class.to_s}"
+        QuickWrap.log "EVENTABLE : handling #{event} for #{opts[:subscriber].class.to_s} (#{args[0].is_a?(Hash) ? 'Hash' : args[0]})"
         opts[:block].call(*args)
       end
     end

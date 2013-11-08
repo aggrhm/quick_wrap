@@ -32,7 +32,7 @@ module QuickWrap
 
       v = self.is_a?(UIView) ? self : self.view
 
-      v.qw_size(nil, v.superview.frame.size.height - App.delegate.keyboard[:height] - v.frame.origin.y) unless v.superview.nil?
+      v.qw_size(nil, v.superview.frame.size.height - App.delegate.app_state[:keyboard][:height] - v.frame.origin.y) unless v.superview.nil?
 
       @obs_key_show = App.notification_center.observe UIKeyboardWillShowNotification do |notif|
         key_h = notif.userInfo[UIKeyboardBoundsUserInfoKey].CGRectValue.size.height
@@ -100,22 +100,32 @@ module QuickWrap
 
       @obs_key_show = App.notification_center.observe UIKeyboardWillShowNotification do |notif|
         key_h = notif.userInfo[UIKeyboardBoundsUserInfoKey].CGRectValue.size.height
-        App.delegate.trigger 'app.keyboard.shown', key_h
-        self.keyboard[:shown] = true
-        self.keyboard[:height] = key_h
+        self.app_state[:keyboard][:shown] = true
+        self.app_state[:keyboard][:height] = key_h
+        App.delegate.trigger 'app.keyboard.toggle', key_h
       end
 
       @obs_key_hide = App.notification_center.observe UIKeyboardWillHideNotification do |notif|
         key_h = notif.userInfo[UIKeyboardBoundsUserInfoKey].CGRectValue.size.height
-        App.delegate.trigger 'app.keyboard.hidden', key_h
-        self.keyboard[:shown] = false
-        self.keyboard[:height] = 0
+        self.app_state[:keyboard][:shown] = false
+        self.app_state[:keyboard][:height] = 0
+        App.delegate.trigger 'app.keyboard.toggle', 0
       end
 
     end
 
-    def keyboard
-      @keyboard ||= {shown: false, height: 0}
+    def app_state
+      @app_state ||= {
+        keyboard: {shown: false, height: 0},
+        orientation: nil
+      }
+    end
+
+    def observe_rotation
+      @obs_rot = App.notification_center.observe UIDeviceOrientationDidChangeNotification do |notif|
+        self.app_state[:orientation] = notif.orientation
+        App.delegate.trigger 'app.orientation.changed', notif.orientation
+      end
     end
     
 
