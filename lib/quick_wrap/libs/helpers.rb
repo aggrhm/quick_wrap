@@ -58,8 +58,12 @@ module QuickWrap
     end
   end
 
-  def self.label_height(text, width, font_name='Avenir-Book', font_size=12)
-    body_h = text.sizeWithFont(UIFont.fontWithName(font_name, size:font_size), constrainedToSize: CGSizeMake(width, 1000), lineBreakMode: UILineBreakModeWordWrap).height
+  def self.label_height(text, width, font)
+    if font.is_a? Symbol
+      fo = AppDelegate::FONT_STYLES[font]
+      font = UIFont.fontWithName(fo[0], size: fo[1])
+    end
+    body_h = text.sizeWithFont(font, constrainedToSize: CGSizeMake(width, 1000), lineBreakMode: UILineBreakModeWordWrap).height
   end
 
   def self.to_json(obj)

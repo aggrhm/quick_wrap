@@ -39,6 +39,27 @@ module QuickWrap
         self.imageView.qw_resize :width, :height
         self.imageView.qw_frame 10, 5, 100, -5
         self.imageView.contentMode = UIViewContentModeLeft
+      when :image_left_centered
+        # get image size
+        if self.imageView.image
+          img_sz = self.imageView.image.size
+          img_rt = img_sz.width.to_f / img_sz.height.to_f
+          img_vw = vh * img_rt
+          img_vh = vh
+        else
+          img_vw = 0
+          img_vh = vh
+        end
+        lbl_vw = self.titleLabel.frame.size.width
+        lbl_vh = self.titleLabel.frame.size.height
+        spc = vw - img_vw - lbl_vw - 5
+        self.imageView.qw_frame spc/2, 0, img_vw, img_vh
+        self.titleLabel.qw_frame self.imageView.x_offset + 5, 0, lbl_vw, 0
+      when :image_right
+        self.imageView.qw_resize :width, :height
+        self.imageView.qw_frame 0, 0, 0, 0
+        self.imageView.contentMode = UIViewContentModeRight
+        self.titleLabel.qw_frame 0, 0, 0, 0
       end
 
       self.imageView.hidden = @is_loading

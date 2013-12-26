@@ -230,21 +230,23 @@ module QuickWrap
       vw = @col_view.frame.size.width
       cy = insets.top
       self.rows.each do |row|
-        margins = row[:margins] || {}
-        t = cy + (margins[:top] || 0)
-        l = il + (margins[:left] || 0)
-        w = vw - ir - (margins[:right] || 0) - l
-        h = self.heightForScope(row, w)
+        t = cy + (row[:margin_top] || 0)
+        l = il + (row[:margin_left] || 0)
+        w = vw - ir - (row[:margin_right] || 0) - l
+        row[:width] = w
+        self.set_scope_layout(row)
+        h = row[:height]
         row[:frame] = CGRectMake(l, t, w, h)
-        cy = t + h + (margins[:bottom] || 0) + spacing
+        cy = t + h + (row[:margin_bottom] || 0) + spacing
       end
     end
 
-    def heightForScope(scope, width)
+    def set_scope_layout(scope)
       opts = @cell_registry[scope[:type]]
-      return 80 if opts.nil?
-      return opts[:height] if opts[:height]
-      return opts[:cell_class].cell_height(scope, width)
+      opts[:cell_class].set_layout(scope) if opts[:cell_class].respond_to?(:set_layout)
+      scope[:height] = opts[:height] if opts[:height]
+      scope[:height] ||= 80
+      return scope
     end
 
     def scroll_to_bottom
