@@ -11,7 +11,7 @@ module QuickWrap
       vh = self.contentView.frame.size.height
 
       @lbl_title = UILabel.new.qw_subview(self.contentView) {|v|
-        v.qw_frame 10, 10, -50, -10
+        v.qw_frame 10, 5, -50, -5
         v.qw_font :reg_16
         v.qw_colors :text
       }

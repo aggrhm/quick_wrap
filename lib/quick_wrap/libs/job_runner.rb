@@ -10,12 +10,12 @@ module QuickWrap
 
     end
 
-    def add_to_queue(task_block, job_del, opts)
+    def add_to_queue(task_block, opts)
       job_opts = opts[:job_opts] || {}
       job = Job.new(self)
       job.image = opts[:image]
       job.run_block = task_block
-      job.delegate = job_del
+      job.delegate = opts[:delegate]
       job.opts = job_opts
       @jobs << job
 
@@ -95,7 +95,7 @@ module QuickWrap
       vw = frame.size.width
       vh = frame.size.height
 
-      self.backgroundColor = BW.rgb_color(31, 33, 37)
+      self.qw_bg :green
       self.clipsToBounds = true
 
       @img_view = UIImageView.new.qw_subview(self) {|v|
@@ -104,6 +104,7 @@ module QuickWrap
       }
 
       @prog_bar = UIProgressView.new.qw_subview(self) {|v|
+        v.progressTintColor = UIColor.whiteColor
       }
 
       @img_cancel = UIImageView.new.qw_subview(self) {|v|
@@ -120,11 +121,11 @@ module QuickWrap
       vh = self.size.height
 
       @prog_bar.qw_frame_rel :right_of, @img_view, 10, vh/2 - 5, -30, 10
-      @img_cancel.qw_frame_rel :right_of, @prog_bar, 5, -5, 20, 20
+      @img_cancel.qw_frame_rel :right_of, @prog_bar, 5, -10, 20, 20
     end
 
     def runner=(runner)
-      QuickWrap.log "JOBVIEW : setting runner to #{runner.inspect}"
+      #QuickWrap.log "JOBVIEW : setting runner to #{runner.inspect}"
       if !runner.nil?
         @runner = runner
         self.set_job(@runner.running_job)

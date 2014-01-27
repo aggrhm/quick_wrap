@@ -16,7 +16,7 @@ module QuickWrap
     end
 
     def self.api_version
-      @api_version ||= 1
+      @api_version ||= "1.0"
     end
 
     def self.host
@@ -54,6 +54,9 @@ module QuickWrap
     class RespData
       def initialize(response)
         @resp = response
+      end
+      def [](field)
+        @resp[field]
       end
       def data
         @resp['data']

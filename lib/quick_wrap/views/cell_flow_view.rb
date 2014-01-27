@@ -1,4 +1,3 @@
-puts "CELLFLOWVIEW LOADING"
 module QuickWrap
 
   class CellFlowView < UIView
@@ -34,7 +33,7 @@ module QuickWrap
         v.dataSource = self
         v.alwaysBounceVertical = true
         v.collectionViewLayout.spacing = 0
-        v.collectionViewLayout.inset = UIEdgeInsetsMake(0, 0, 0, 0)
+        v.collectionViewLayout.insets = UIEdgeInsetsMake(0, 0, 0, 0)
       }
 
 
@@ -78,6 +77,15 @@ module QuickWrap
 
     def configure_layout
       yield @col_view.collectionViewLayout
+    end
+
+    def update_insets(opts)
+      layout = @col_view.collectionViewLayout
+      insets = layout.insets
+      insets.top = opts[:top] if opts[:top]
+      insets.bottom = opts[:bottom] if opts[:bottom]
+      layout.insets = insets
+      @col_view.reloadData
     end
 
     def register_cell(type, cell_class, opts={})
@@ -189,7 +197,10 @@ module QuickWrap
       scope = self.rows[index_path.row]
       ident = scope[:type]
       pc = cv.dequeueReusableCellWithReuseIdentifier(ident.to_s, forIndexPath: index_path)
-      pc.qw_handle_gesture {|g| self.handle_cell_gesture(ident, g, pc)} if pc.scope.nil?
+      if pc.scope.nil?
+        pc.qw_handle_gesture {|g| self.handle_cell_gesture(ident, g, pc)}
+        pc.delegate = self if pc.respond_to?('delegate=')
+      end
       pc.from_scope(scope)
       return pc
     end
@@ -223,7 +234,7 @@ module QuickWrap
     end
 
     def position_rows
-      insets = @col_view.collectionViewLayout.inset
+      insets = @col_view.collectionViewLayout.insets
       spacing = @col_view.collectionViewLayout.spacing
       il = insets.left
       ir = insets.right
@@ -257,7 +268,7 @@ module QuickWrap
     ## CVCUSTOMLAYOUT
     class CVCustomLayout < UICollectionViewLayout
 
-      attr_accessor :inset, :spacing, :has_sticky
+      attr_accessor :insets, :spacing, :has_sticky
 
       def init
         super
@@ -267,11 +278,19 @@ module QuickWrap
 
       def init_params
         self.spacing ||= 0
-        self.inset ||= UIEdgeInsetsMake(0, 0, 0, 0)
+        self.insets ||= UIEdgeInsetsMake(0, 0, 0, 0)
         self.has_sticky = false
         @attrs = []
         @max_height = 0
         @max_width = 0
+      end
+
+      def inset=(val)
+        @insets=val
+      end
+
+      def inset
+        @insets
       end
 
       def prepareLayout
@@ -296,13 +315,14 @@ module QuickWrap
 
           frame = row_scope[:frame]
           attr.frame = frame
+          @max_width = [@max_width, frame.origin.x + frame.size.width].max
           @max_height = [@max_height, frame.origin.y + frame.size.height].max
-          sticky = attr if (row_scope[:sticky] && frame.origin.y < (self.inset.top + y_offset))
+          sticky = attr if (row_scope[:sticky] && frame.origin.y < (self.insets.top + y_offset))
           attr.zIndex = 1024 + idx if row_scope[:sticky]
         end
 
         # Reposition sticky element. Last sticky element should be at the top
-        sticky.frame = CGRectMake(self.inset.left, y_offset + self.inset.top, sticky.frame.size.width, sticky.frame.size.height) if sticky
+        sticky.frame = CGRectMake(self.insets.left, y_offset + self.insets.top, sticky.frame.size.width, sticky.frame.size.height) if sticky
 
       end
 
@@ -325,7 +345,8 @@ module QuickWrap
           return CGSizeZero
         else
           size = self.collectionView.frame.size
-          size.height = @max_height + self.inset.bottom
+          size.width = @max_width + self.insets.right
+          size.height = @max_height + self.insets.bottom
           return size
         end
       end

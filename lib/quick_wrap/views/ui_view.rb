@@ -211,15 +211,26 @@ class UIView
     self.qw_frame(x, y, w, h)
   end
 
-  def qw_frame_set(type, *args)
-    opts = {type: type}
-    case type
+  def qw_frame_set(*args)
+    start = args[0]
+    opts = {}
+    case start
     when :normal, :reg
-      opts[:x] = args[0]
-      opts[:y] = args[1]
-      opts[:w] = args[2]
-      opts[:h] = args[3]
+      opts[:type] = args[0]
+      opts[:x] = args[1]
+      opts[:y] = args[2]
+      opts[:w] = args[3]
+      opts[:h] = args[4]
     when :relative, :rel
+      opts[:type] = :rel
+      opts[:origin] = args[1]
+      opts[:anchor] = args[2]
+      opts[:x] = args[3]
+      opts[:y] = args[4]
+      opts[:w] = args[5]
+      opts[:h] = args[6]
+    when :right_of, :bottom_of
+      opts[:type] = :rel
       opts[:origin] = args[0]
       opts[:anchor] = args[1]
       opts[:x] = args[2]
@@ -227,11 +238,25 @@ class UIView
       opts[:w] = args[4]
       opts[:h] = args[5]
     when :from
+      opts[:type] = :from
+      opts[:origin] = args[1]
+      opts[:x] = args[2]
+      opts[:y] = args[3]
+      opts[:w] = args[4]
+      opts[:h] = args[5]
+    when :bottom_left, :bottom_right, :top_right
+      opts[:type] = :from
       opts[:origin] = args[0]
       opts[:x] = args[1]
       opts[:y] = args[2]
       opts[:w] = args[3]
       opts[:h] = args[4]
+    else
+      opts[:type] = :reg
+      opts[:x] = args[0]
+      opts[:y] = args[1]
+      opts[:w] = args[2]
+      opts[:h] = args[3]
     end
 
     @qw_frame_opts = opts
@@ -252,15 +277,26 @@ class UIView
     end
   end
 
+  def qw_frame_opts
+    @qw_frame_opts
+  end
+
   def qw_layout_subviews
     self.subviews.each do |view|
-      view.qw_reframe
+      view.qw_reframe unless view.qw_frame_opts.nil?
     end
   end
 
   def qw_center_x(y)
     f = self.frame
     f.origin.x = ((self.qw_superview.size.width / 2.0) - (f.size.width / 2.0)).to_i
+    f.origin.y = y
+    self.frame = f
+  end
+
+  def qw_origin(x, y)
+    f = self.frame
+    f.origin.x = x
     f.origin.y = y
     self.frame = f
   end

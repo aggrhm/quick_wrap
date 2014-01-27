@@ -31,6 +31,23 @@ module QuickWrap
 
     end
 
+    def self.position_rows_as_carousel(cfv, opts={})
+      col_view = cfv.col_view
+      rows = cfv.rows
+      insets = col_view.collectionViewLayout.inset
+      spacing = col_view.collectionViewLayout.spacing
+      vh = col_view.size.height
+      vht = vh - insets.top - insets.bottom
+
+      cx = insets.left
+      rows.each do |row|
+        rw = row[:width]
+        row[:frame] = CGRectMake(cx, insets.top, rw, vht)
+        cx += rw + spacing
+      end
+
+    end
+
     # opts[:cols] - number of columns
     def self.position_rows_as_pins(cfv, opts={})
       col_view = cfv.col_view
