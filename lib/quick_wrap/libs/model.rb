@@ -117,6 +117,10 @@ module QuickWrap
       self.off(:all, sub)
     end
 
+    def id_only?
+      false
+    end
+
     def marked_deleted?
       @_deleted ||= false
     end

@@ -1,6 +1,9 @@
+$:.unshift File.expand_path('../lib', __FILE__)
+require "quick_wrap/version"
+
 Gem::Specification.new do |s|
   s.name        = "quick_wrap"
-  s.version     = "0.0.1"
+  s.version     = QuickWrap::VERSION
   s.platform    = Gem::Platform::RUBY
   s.authors     = ["Alan Graham"]
   s.email       = ["alan@productlab.com"]

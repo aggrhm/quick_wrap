@@ -30,6 +30,10 @@ class UIImage
     return image
   end
 
+  def self.from_sym(sym)
+    UIImage.imageNamed(AppDelegate::IMAGES[sym])
+  end
+
   def croppedToSize(targetSize)
     sourceImage = self
     return nil if sourceImage.nil?

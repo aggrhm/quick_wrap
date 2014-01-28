@@ -38,9 +38,22 @@ class UIView
     self.font = UIFont.fontWithName(f, size: s)
   end
 
-  def qw_rounded(val)
+  def qw_rounded(val, corners=:all)
     self.clipsToBounds = true
-    self.layer.cornerRadius = val
+
+    if corners == :all
+      self.layer.cornerRadius = val
+    else
+      enums = {top_left: UIRectCornerTopLeft, top_right: UIRectCornerTopRight, bottom_left: UIRectCornerBottomLeft, bottom_right: UIRectCornerBottomRight}
+      enums_or = corners.map{|c| enums[c]}.reduce{|memo, obj| memo | obj}
+
+      mask_path = UIBezierPath.bezierPathWithRoundedRect(self.bounds, byRoundingCorners: enums_or, cornerRadii: CGSizeMake(val, val))
+      mask_layer = CAShapeLayer.layer
+      mask_layer.frame = self.bounds
+      mask_layer.path = mask_path.CGPath
+
+      self.layer.mask = mask_layer
+    end
   end
 
   def qw_multiline
