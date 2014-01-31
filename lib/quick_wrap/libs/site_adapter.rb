@@ -23,15 +23,25 @@ module QuickWrap
       @host ||= 'http://localhost:3000/api'
     end
 
+    def self.options
+      @options ||= {}
+    end
+
+    def self.history
+      @history ||= []
+    end
+
     def self.connect(path, data, method=:POST, opts={}, &callback)
       full_path = "#{self.host}#{path}"
       opts[:payload] = self.process_params(data)
-      opts[:payload][:api_ver] = self.api_version if opts[:payload][:api_ver].nil?
+      opts[:headers] = {'API-Version' => self.api_version.to_s}
       # log request
       QuickWrap.log "#{method.to_s} #{path} #{data.inspect}"
 
       BW::HTTP.send(method.to_s.downcase, full_path, opts) do |response|
-        callback.call self.process_response(response)
+        resp = self.process_response(response)
+        callback.call resp
+        self.history << {method: method, path: full_path, data: data, resp: resp, size: response.body ? response.body.to_str.length : 0} if self.options[:keep_history]
       end
       return nil
     end
