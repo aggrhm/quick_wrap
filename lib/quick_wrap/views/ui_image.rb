@@ -31,7 +31,11 @@ class UIImage
   end
 
   def self.from_sym(sym)
-    UIImage.imageNamed(AppDelegate::IMAGES[sym])
+    if sym.is_a?(Symbol)
+      UIImage.imageNamed(AppDelegate::IMAGES[sym])
+    else
+      UIImage.imageNamed(sym)
+    end
   end
 
   def croppedToSize(targetSize)

@@ -15,16 +15,6 @@ class UIImageView
     elsif url.match(/^http[s]?:\/\/.*/)
       # load async
       self.image = nil
-      #BW::HTTP.get(url) do |response|
-        #self.alpha = 0
-        #img = UIImage.alloc.initWithData(response.body)
-        #img = block.call(img) if block
-        #self.image = img
-        #UIView.beginAnimations('fadeIn', context: nil)
-        #UIView.setAnimationDuration(0.5)
-        #self.alpha = 1.0
-        #UIView.commitAnimations
-      #end
       trigger :state, :loading
       SDWebImageManager.sharedManager.downloadWithURL(url, options:0, progress:nil, completed: lambda{|img, error, cacheType, finished|
         if img

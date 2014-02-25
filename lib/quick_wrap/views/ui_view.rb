@@ -188,7 +188,7 @@ class UIView
     h = bottom > 0 ? bottom : parent.bounds.size.height - y - bottom.abs
     w = 0 if w < 0
     h = 0 if h < 0
-    self.frame = CGRectMake(x, y, w, h)
+    self.frame = CGRectMake(x.to_i, y.to_i, w.to_i, h.to_i)
   end
 
   def qw_margin_frame(x, y, right, bottom, parent=nil)

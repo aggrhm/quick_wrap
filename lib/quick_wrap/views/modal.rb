@@ -2,19 +2,27 @@ module QuickWrap
 
   class Modal < UIView
 
-    attr_accessor :delegate, :selector, :modalView, :contentView, :headerView, :parent
+    attr_accessor :delegate, :selector, :backdropView, :modalView, :contentView, :headerView, :parent
 
     include Eventable
 
     def initWithFrame(frame)
       super
-      self.backgroundColor = BW.rgba_color(255, 255, 255, 0.8)
+      self.backgroundColor = BW.rgba_color(0, 0, 0, 0.7)
       self.qw_resize :height, :width
       @modal_opts = {}
 
       #@blur_view = UIView.new.qw_subview(self) {|v|
         #v.qw_blur
       #}
+
+      self.backdropView = UIView.new.qw_subview(self) {|v|
+        v.qw_frame_set 0, 0, 0, 0
+        v.qw_resize :width, :height
+        v.when_tapped {
+          self.hide unless @modal_opts[:static]
+        }
+      }
 
       self.modalView = UIView.new.qw_subview(self) {|v|
         #v.qw_shadow(optimized: false)
@@ -36,11 +44,12 @@ module QuickWrap
         v.qw_resize :width, :height
       }
 
-      @img_close = UIImageView.new.qw_subview(self.modalView) {|v|
+      @img_close = UIImageView.new.qw_subview(self.modalView, false) {|v|
         v.image = UIImage.imageNamed('quick_wrap/close-white')
         v.when_tapped { self.hide }
       }
 
+      self.hidden = true
       return self
     end
 
@@ -82,17 +91,14 @@ module QuickWrap
       @prepare_block = block
     end
 
-    def layoutInParent
-      #cv_h = @prepare_opts[:height] || 100
-
-    end
-
     def show
       #window = UIApplication.sharedApplication.keyWindow
       self.will_show
-      self.reset_frame
       self.alpha = 0.0
-      self.parent.addSubview(self)
+      self.modalView.frame = CGRectMake(0, 0, 0, 0)
+      self.hidden = false
+      self.reset_frame
+      self.layout_modal
       UIView.animateWithDuration(0.2,
         animations: lambda {
           self.alpha = 1.0
@@ -103,12 +109,24 @@ module QuickWrap
         })
     end
 
-    def hide
-      UIView.animateWithDuration(0.2, 
-        animations: lambda { self.alpha = 0 },
-        completion: lambda {|finished| self.removeFromSuperview })
+    def hide(animated=true)
+      if animated
+        UIView.animateWithDuration(0.2, 
+          animations: lambda { self.alpha = 0 },
+          completion: lambda {|finished| self.hidden=true; self.did_hide })
+      else
+        self.hidden = true
+        self.did_hide
+      end
       @modal_opts[:blur].qw_remove_blur if @modal_opts[:blur]
-      self.did_hide
+    end
+
+    def toggle
+      if self.isHidden
+        self.show
+      else
+        self.hide
+      end
     end
 
     def will_show
@@ -116,39 +134,38 @@ module QuickWrap
     end
 
     def did_show
-
+      self.trigger 'visible.changed', true
     end
 
     def did_hide
+      self.trigger 'visible.changed', false
 
     end
 
     def did_load
       #self.qw_frame 0, 0, 0, 0, self.parent
-      self.when_tapped { self.hide } unless @modal_opts[:static]
-      show_close = !@modal_opts[:static] && @modal_opts[:show_close] == true
-      @img_close.hidden = !show_close
+      #self.when_tapped { self.hide } unless @modal_opts[:static]
+      @img_close.hidden = true
       @lbl_hdr_title.hidden = @modal_opts[:show_header] == false
       #@blur_view.hidden = @modal_opts[:blur] != true
 
-      self.reset_frame
-      self.layout_for_parent
       self.build_view
     end
 
     def build_view
-
+      self.layout_modal
     end
 
     def layoutSubviews
-      self.layout_for_parent
+      self.layout_modal
     end
 
     def reset_frame
-      self.qw_frame 0, 0, 0, 0, self.parent
+      #self.qw_frame 0, 0, 0, 0, self.parent
+      self.qw_reframe
     end
 
-    def layout_for_parent
+    def layout_modal
       vh = self.size.height
       vw = self.size.width
 
@@ -200,7 +217,8 @@ module QuickWrap
     def self.createPrompt(del, opts={})
       p = opts[:view].superview || App.window
       b = opts[:view]
-      modal = self.new.tap {|v|
+      modal = self.new.qw_subview(p) {|v|
+        v.qw_frame_set 0, 0, 0, 0
         v.delegate = del
         opts[:show_header] ||= false
         opts[:static] ||= true
@@ -210,11 +228,11 @@ module QuickWrap
         opts[:blur] ||= b
         #QuickWrap.log opts[:blur]
         v.set_modal_opts(opts)
-        v.load_for(p)
+        v.build_view
       }
     end
 
-    def did_load
+    def build_view
       super
       vw = self.contentView.size.width
       vh = self.contentView.size.height
@@ -254,6 +272,11 @@ module QuickWrap
       @num_buttons += 1
       @bt += @bh if @num_buttons % 3 == 0
       @bl = (@num_buttons % 3) * @bw
+    end
+
+    def did_hide
+      super
+      self.removeFromSuperview
     end
   end
 

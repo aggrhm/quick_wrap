@@ -337,7 +337,7 @@ module QuickWrap
       end
 
       def shouldInvalidateLayoutForBoundsChange(bounds)
-        return true if self.has_sticky
+        return self.has_sticky
       end
 
       def collectionViewContentSize

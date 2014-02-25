@@ -66,6 +66,21 @@ module QuickWrap
     body_h = text.sizeWithFont(font, constrainedToSize: CGSizeMake(width, 1000), lineBreakMode: UILineBreakModeWordWrap).height
   end
 
+  def self.string_attr(attr)
+    ret = {}
+    attr.each do |key, val|
+      case key
+      when :color
+        ret[NSForegroundColorAttributeName] = AppDelegate::COLORS[val]
+      when :font
+        f = AppDelegate::FONT_STYLES[val]
+        ret[NSFontAttributeName] = UIFont.fontWithName(f[0], size: f[1])
+      end
+    end
+
+    return ret
+  end
+
   def self.to_json(obj)
     BW::JSON.generate(obj)
   end
