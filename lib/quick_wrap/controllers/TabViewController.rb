@@ -1,6 +1,7 @@
 module QuickWrap
 
   class TabViewController < UIViewController
+    include Eventable
 
     def viewDidLoad
       super
@@ -28,6 +29,7 @@ module QuickWrap
         addInitialViewController(new_ctr)
       end
       @sel_idx = idx
+      self.trigger('tab.changed', idx)
     end
 
     def selectedIndex
