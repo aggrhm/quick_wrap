@@ -33,7 +33,8 @@ class UIView
 
   def qw_font(f, s=nil)
     if f.is_a? Symbol
-      f, s = AppDelegate::FONT_STYLES[f]
+      f, ts = AppDelegate::FONT_STYLES[f]
+      s ||= ts
     end
     self.font = UIFont.fontWithName(f, size: s)
   end
@@ -156,6 +157,10 @@ class UIView
   end
   def qw_content_fit
     self.contentMode = UIViewContentModeScaleAspectFit
+    self.clipsToBounds = true
+  end
+  def qw_content_top
+    self.contentMode = UIViewContentModeTop
     self.clipsToBounds = true
   end
 

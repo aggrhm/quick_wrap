@@ -78,7 +78,7 @@ module QuickWrap
         @resp['meta'] == 200
       end
       def error_msg
-        @resp['data']['errors'][0]
+        @resp['error'] || @resp['data']['errors'][0]
       end
     end
 

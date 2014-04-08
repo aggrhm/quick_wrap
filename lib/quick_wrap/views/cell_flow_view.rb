@@ -318,6 +318,7 @@ module QuickWrap
           @max_width = [@max_width, frame.origin.x + frame.size.width].max
           @max_height = [@max_height, frame.origin.y + frame.size.height].max
           sticky = attr if (row_scope[:sticky] && frame.origin.y < (self.insets.top + y_offset))
+          attr.zIndex = row_scope[:z_index] if row_scope[:z_index]
           attr.zIndex = 1024 + idx if row_scope[:sticky]
         end
 

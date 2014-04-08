@@ -49,6 +49,8 @@ module QuickWrap
         v.when_tapped { self.hide }
       }
 
+      self.build_view
+
       self.hidden = true
       return self
     end
@@ -92,13 +94,11 @@ module QuickWrap
     end
 
     def show
-      #window = UIApplication.sharedApplication.keyWindow
-      self.will_show
       self.alpha = 0.0
-      self.modalView.frame = CGRectMake(0, 0, 0, 0)
       self.hidden = false
       self.reset_frame
-      self.layout_modal
+      self.layoutSubviews
+      self.will_show
       UIView.animateWithDuration(0.2,
         animations: lambda {
           self.alpha = 1.0

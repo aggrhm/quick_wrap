@@ -44,17 +44,17 @@ class UIImageView
     end
   end
 
-  def load_from_url(url, croppedTo: targetSize)
+  def load_from_url(url, croppedTo: targetSize, cropMode: mode)
     self.load_from_url(url) do |img|
-      img.qw_crop(targetSize) if img
+      img.qw_crop(targetSize, mode) if img
     end
   end
 
-  def load_cropped_to(targetSize)
-    self.load_from_url(self.source_url, croppedTo: targetSize)
+  def load_cropped_to(targetSize, mode=:center)
+    self.load_from_url(self.source_url, croppedTo: targetSize, cropMode: mode)
   end
 
-  def load_cropped
+  def load_cropped(mode=:center)
     self.load_from_url(self.source_url, croppedTo: self.size)
   end
 

@@ -81,6 +81,32 @@ class UIImage
 
   end
 
+  def scale_to_size(targetSize, mode=:cover)
+
+    if mode == :cover
+      wr = targetSize.width / self.size.width
+      hr = targetSize.height / self.size.height
+      if hr > wr
+        dh = targetSize.height
+        dw = self.size.width * targetSize.height / self.size.height
+      else
+        dw = targetSize.width
+        dh = self.size.height * targetSize.width / self.size.width
+      end
+      newSize = CGSizeMake(dw, dh)
+    else
+      newSize = targetSize
+    end
+
+    newRect = CGRectIntegral(CGRectMake(0, 0, newSize.width, newSize.height))
+
+    UIGraphicsBeginImageContextWithOptions(newSize, false, 0)
+    self.drawInRect(newRect)
+    newImage = UIGraphicsGetImageFromCurrentImageContext()
+    UIGraphicsEndImageContext()
+    return newImage
+  end
+
   def stretchedToSize(targetSize)
     UIGraphicsBeginImageContext(targetSize)
     self.drawInRect(CGRectMake(0, 0, targetSize.width, targetSize.height))
@@ -90,8 +116,18 @@ class UIImage
     return image
   end
 
-  def qw_crop(size)
-    self.cropToSize(size, usingMode: NYXCropModeCenter)
+  def qw_crop(size, mode=:center)
+    modes = {center: NYXCropModeCenter, top_center: NYXCropModeTopCenter}
+    self.cropToSize(size, usingMode: modes[mode])
+  end
+
+  def qw_scale_and_crop(size, mode=:center)
+    self.scaleToSize(size, usingMode: NYXResizeModeAspectFill).qw_crop(size, mode)
+  end
+
+  def qw_scale(size)
+    #self.scaleToSize(size, usingMode: NYXResizeModeAspectFill)
+    self.scale_to_size(size)
   end
 
 end
