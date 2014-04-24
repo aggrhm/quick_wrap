@@ -1,68 +1,33 @@
 module QuickWrap
 
+  # TODO: add section panel where you give height and number of fields and it draws with border and separator lines
+
   class Form < UIScrollView
 
-    attr_accessor :elements, :selected_element, :inset, :spacing
+    attr_accessor :elements, :selected_element, :delegate
 
-    def add(type, key, opts={}, &block)
-      @inset ||= UIEdgeInsetsMake(0, 0, 0, 0)
-      el_cls = case type
-      when :textfield
-        FormTextField
-      when :text
-        FormTextView
-      when :datetime
-        FormDateTimePicker
-      when :button
-        FormButton
-      when :image
-        FormImage
-      when :label
-        FormLabel
+    def initWithFrame(frame)
+      super
+
+      @elements = {}
+      self.build_view
+
+      self.subviews.each do |v|
+        @elements[v.key] = v if v.is_a?(FormElement)
+        v.tag = 1
       end
 
-      # determine frame
-      width = opts[:width] || 0
-      width -= @inset.right if width <= 0
-      height = opts[:height] || 40
-      el = el_cls.alloc.initWithFrame(CGRectZero)
+      return self
+    end
 
-      # auto position
-      first_el = self.elements.empty?
-      if !first_el
-        if !opts[:bottom_of] && !opts[:right_of]
-          last_el = self.elements.values.last
-          opts[:bottom_of] = last_el.key
-        end
-      end
-      spacing = opts[:spacing] || self.spacing || 10
+    def build_view
 
-      # add to view
-      el.qw_subview(self) {|v|
-        if opts[:bottom_of]
-          v.qw_frame_set :rel, :bottom_of, self.elements[opts[:bottom_of]], 0, spacing, width, height
-        elsif opts[:right_of]
-          v.qw_frame_set :rel, :right_of, self.elements[opts[:right_of]], spacing, 0, width, height
-        else
-          v.qw_frame_set :reg, @inset.left, @inset.top, width, height
-        end
-      }
-      el.build_view
-      el.key = key
-      el.process_options(opts)
-      block.call(el) if block
-      self.elements[key] = el
-      self.update_size
     end
 
     def layoutSubviews
       super
-
-      @elements.values.each {|el| el.qw_reframe}
-    end
-
-    def elements
-      @elements ||= {}
+      self.qw_layout_subviews
+      self.update_size
     end
 
     def [](key)
@@ -70,8 +35,9 @@ module QuickWrap
     end
 
     def update_size
-      heights = self.elements.values.collect{|el| el.y_offset}
-      widths = self.elements.values.collect{|el| el.x_offset}
+      content_views = self.subviews.select{|v| v.tag == 1}
+      heights = content_views.collect{|el| el.y_offset}
+      widths = content_views.collect{|el| el.x_offset}
       self.contentSize = CGSizeMake(widths.max, heights.max)
     end
 
@@ -81,9 +47,10 @@ module QuickWrap
       end
       element.handle_focus
       self.selected_element = element
+      App.run_after(0.5) { self.scroll_to_element(element) }
     end
 
-    def show_date_picker(date_val, mode=UIDatePickerModeDateTime)
+    def show_date_picker(date_val, mode=UIDatePickerModeDateAndTime)
       if @picker.nil?
         @picker = UIDatePicker.new.qw_subview(self) {|v|
           v.qw_frame_from :bottom_left, 0, 0, 0, 200
@@ -93,8 +60,9 @@ module QuickWrap
         @picker.hidden = false
       end
 
-      @picker.date = NSDate.dateWithTimeIntervalSince1970(date_val)
       @picker.datePickerMode = mode
+      @picker.date = NSDate.dateWithTimeIntervalSince1970(date_val)
+      @picker.timeZone = NSTimeZone.systemTimeZone
     end
 
     def hide_date_picker
@@ -105,11 +73,9 @@ module QuickWrap
       self.selected_element.value = @picker.date.timeIntervalSince1970.to_i
     end
 
-    def show_asset_picker(element)
-      QuickWrap::Camera.display_picker(from_rect: element.bounds, view: self, delegate: App.delegate.root_ctr) do |result|
-        if result[:original_image]
-          element.value = result[:original_image]
-        end
+    def show_asset_picker(element, &block)
+      QuickWrap::Camera.display_picker(from_rect: element.bounds, view: self, delegate: self.delegate || App.delegate.root_ctr) do |result|
+        block.call(result)
       end
     end
 
@@ -121,13 +87,23 @@ module QuickWrap
       end
     end
 
+    def scroll_to_element(element=nil)
+      element ||= @selected_element
+      return if element.nil?
+      self.scrollRectToVisible(element.frame, animated: true)
+    end
+
   end
 
   class FormElement < UIView
 
     attr_accessor :options, :key
 
-    def build_view
+    def initWithFrame(frame)
+      super
+
+      @value = nil
+      @change_fn = nil
 
       self.qw_resize :width
 
@@ -136,7 +112,7 @@ module QuickWrap
       }
 
       @img_icon = UIImageView.new.qw_subview(self) {|v|
-        #v.qw_frame 5, 5, 25, 25
+
       }
 
       @lbl_title = UILabel.new.qw_subview(self) {|v|
@@ -145,17 +121,15 @@ module QuickWrap
 
       self.when_tapped {self.form.handle_element_selected(self)}
 
+      return self
     end
 
-    def process_options(opts)
-      self.options = opts
-      self.qw_style opts[:style] || self.default_style
-      @img_icon.image = UIImage.imageNamed(opts[:icon]) if opts[:icon]
-      @lbl_title.text = opts[:title] if opts[:title]
+    def layoutSubviews
+      self.qw_layout_subviews
     end
 
     def handle_focus
-
+      App.run_after(0.5) { self.form.scroll_to_element(self) }
     end
 
     def handle_blur
@@ -175,11 +149,24 @@ module QuickWrap
     end
 
     def value
-
+      @value
     end
 
     def value=(val)
-      self.options[:on_change].call(val) if self.options[:on_change]
+      @value = val
+      self.handle_value_changed(val)
+    end
+
+    def on_change(&block)
+      @change_fn = block
+    end
+
+    def handle_value_changed(val)
+      @change_fn.call(val) if @change_fn
+    end
+
+    def title=(val)
+      @lbl_title.text = val
     end
 
     def default_style
@@ -198,7 +185,7 @@ module QuickWrap
 
   class FormTextField < FormElement
 
-    def build_view
+    def initWithFrame(frame)
       super
       @txt_view = UITextField.new.qw_subview(self) {|v|
         v.qw_resize :width
@@ -207,13 +194,17 @@ module QuickWrap
         v.contentVerticalAlignment = UIControlContentVerticalAlignmentCenter
         v.returnKeyType = UIReturnKeyDone
       }
+      return self
     end
 
-    def process_options(opts)
-      super
-      case opts[:type]
+    def type=(val)
+      case val
       when :email
         self.text_view.keyboardType = UIKeyboardTypeEmailAddress
+      when :number
+        self.text_view.keyboardType = UIKeyboardTypeNumberPad
+      when :phone
+        self.text_view.keyboardType = UIKeyboardTypePhonePad
       when :password
         self.text_view.secureTextEntry = true
       end
@@ -244,7 +235,7 @@ module QuickWrap
     end
 
     def value
-      @txt_view.text
+      @value = @txt_view.text
     end
 
     def value=(val)
@@ -259,12 +250,13 @@ module QuickWrap
 
   class FormTextView < FormElement
 
-    def build_view
+    def initWithFrame(frame)
       super
       @txt_view = UITextView.new.qw_subview(self) {|v|
         v.qw_resize :width
         v.delegate = self
       }
+      return self
     end
 
     def text_view
@@ -284,7 +276,7 @@ module QuickWrap
     end
 
     def value
-      @txt_view.text
+      @value = @txt_view.text
     end
 
     def value=(val)
@@ -298,20 +290,19 @@ module QuickWrap
   end
 
   class FormButton < FormElement
-    def build_view
+    def initWithFrame(frame)
       super
       self.subviews.each {|v| v.hidden = true}
       @btn = QuickWrap::FlexButton.new.qw_subview(self) {|v|
         v.qw_frame 0, 0, 0, 0
         v.qw_resize :width, :height
       }
+      return self
     end
 
-    def process_options(opts)
-      @btn.qw_style opts[:style] || self.default_style
-      @btn.setTitle(opts[:title], forState: UIControlStateNormal)
+    def action(&block)
       @btn.when(UIControlEventTouchUpInside) {
-        opts[:action].call
+        block.call
       }
     end
 
@@ -322,9 +313,11 @@ module QuickWrap
 
   class FormDateTimePicker < FormElement
 
-    def build_view
+    def initWithFrame(frame)
       super
+      @mode = UIDatePickerModeDateAndTime
       @lbl_view = UILabel.new.qw_subview(self)
+      return self
     end
 
     def label_view
@@ -332,27 +325,26 @@ module QuickWrap
     end
 
     def handle_focus
-      picker = self.form.show_date_picker(self.value, self.options[:mode])
+      picker = self.form.show_date_picker(self.value, @mode)
     end
 
     def handle_blur
       self.form.hide_date_picker
     end
 
-    def value
-      @value
+    def mode=(val)
+      @mode = val
     end
 
     def value=(val)
       super
-      @value = val
-      case self.options[:mode]
+      case @mode
       when UIDatePickerModeDateAndTime, nil
-        @lbl_view.text = Time.at(@value).strftime("%B %-d, %Y  %l:%M %p")
+        @lbl_view.text = Time.at(@value).localtime.strftime("%B %-d, %Y  %l:%M %p")
       when UIDatePickerModeDate
-        @lbl_view.text = Time.at(@value).strftime("%B %-d, %Y")
+        @lbl_view.text = Time.at(@value).localtime.strftime("%B %-d, %Y")
       when UIDatePickerModeTime
-        @lbl_view.text = Time.at(@value).strftime("%l:%M %p")
+        @lbl_view.text = Time.at(@value).localtime.strftime("%l:%M %p")
       end
     end
 
@@ -363,8 +355,11 @@ module QuickWrap
 
   class FormImage < FormElement
 
-    def build_view
+    def initWithFrame(frame)
       super
+
+      @source_mode = :any
+      @image_selected_fn = nil
 
       @img_view = UIImageView.new.qw_subview(self) {|v|
         v.qw_content_fill
@@ -372,19 +367,19 @@ module QuickWrap
           self.prompt_select_picture
         }
       }
+      return self
     end
 
     def image_view
       @img_view
     end
 
-    def value
-      @value
+    def source_mode=(val)
+      @source_mode=val
     end
 
     def value=(val)
       super
-      @value = val
       if @value.is_a? UIImage
         @img_view.image = @value
       else
@@ -398,12 +393,33 @@ module QuickWrap
     end
 
     def prompt_select_picture
-      p = QuickWrap::ActionSheet.new
-      p.add_button :library, "Choose from library...", lambda {
-        self.form.show_asset_picker(self)
-      }
-      p.add_button :cancel, "Cancel"
-      p.showInView(App.window)
+      if @source_mode == :any
+        p = QuickWrap::ActionSheet.new
+        p.add_button :library, "Choose from library...", lambda {
+          self.show_asset_picker
+        }
+        p.add_button :cancel, "Cancel"
+        p.showInView(App.window)
+      elsif @source_mode == :library
+        self.show_asset_picker
+      end
+    end
+
+    def show_asset_picker
+      self.form.show_asset_picker(self) do |result|
+        img = result[:original_image]
+        if img
+          if @image_selected_fn
+            @image_selected_fn.call(img)
+          else
+            self.value = img
+          end
+        end
+      end
+    end
+
+    def on_image_selected(&block)
+      @image_selected_fn = block
     end
 
     def default_style

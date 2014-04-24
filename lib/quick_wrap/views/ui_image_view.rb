@@ -33,6 +33,8 @@ class UIImageView
             self.alpha = 1.0
           end
           trigger :state, :loaded
+        else
+          QW.log 'ERROR: UIIMAGEVIEW:: Could not load image'
         end
       })
     else
@@ -55,7 +57,7 @@ class UIImageView
   end
 
   def load_cropped(mode=:center)
-    self.load_from_url(self.source_url, croppedTo: self.size)
+    self.load_from_url(self.source_url, croppedTo: self.size, cropMode: mode)
   end
 
   def load_from_url(url, stretchedTo: targetSize)

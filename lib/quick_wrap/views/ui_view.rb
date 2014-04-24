@@ -119,6 +119,10 @@ class UIView
     self.superview.bringSubviewToFront(self)
   end
 
+  def qw_send_to_back
+    self.superview.sendSubviewToBack(self)
+  end
+
   def qw_stretched_background(path)
     UIGraphicsBeginImageContext(self.frame.size)
     UIImage.imageNamed(path).drawInRect(self.bounds)
@@ -132,19 +136,18 @@ class UIView
     self.setBackgroundColor(UIColor.alloc.initWithPatternImage(UIImage.imageNamed(path)))
   end
 
-  def qw_bg_image(path, insets=nil)
+  def qw_bg_image(img, insets=nil, scale=UIViewContentModeScaleToFill)
     self.backgroundColor = UIColor.clearColor
-    img = UIImageView.new.qw_subview(self) {|v|
+    img_view = UIImageView.new.qw_subview(self) {|v|
       v.qw_frame 0, 0, 0, 0
       v.qw_resize :width, :height
-      if insets
-        v.image = UIImage.imageNamed(path).resizableImageWithCapInsets(insets)
-      else
-        v.image = UIImage.imageNamed(path)
-      end
-      v.contentMode = UIViewContentModeScaleToFill
+      # build image
+      img = UIImage.from_sym(img) unless img.is_a?(UIImage)
+      img = img.resizableImageWithCapInsets(insets) if insets
+      v.image = img
+      v.contentMode = scale
     }
-    self.sendSubviewToBack(img)
+    self.sendSubviewToBack(img_view)
   end
 
   def qw_maintain_aspect
@@ -305,10 +308,10 @@ class UIView
     end
   end
 
-  def qw_center_x(y)
+  def qw_center_x(y=nil)
     f = self.frame
     f.origin.x = ((self.qw_superview.size.width / 2.0) - (f.size.width / 2.0)).to_i
-    f.origin.y = y
+    f.origin.y = y if y
     self.frame = f
   end
 
@@ -343,9 +346,10 @@ class UIView
     UIView.commitAnimations
   end
 
-  def qw_blur
+  def qw_blur(radius=3.0)
     filter = CAFilter.filterWithName("gaussianBlur")
-    filter.setValue(3.0, forKey: "inputRadius")
+    filter.setValue(radius, forKey: "inputRadius")
+    filter.setValue(true, forKey: "inputHardEdges")
     self.layer.filters = [filter]
   end
 
@@ -408,13 +412,6 @@ class UIView
       v.qw_rounded 3
       v.setTitleColor(UIColor.whiteColor, forState:UIControlStateNormal)
       v.setTitleColor(UIColor.grayColor, forState:UIControlStateHighlighted)
-    when :button_orange
-      v.qw_font 'Avenir-Black', 14
-      v.qw_gradient [BW.rgb_color(222, 84, 48), BW.rgb_color(171, 65, 38)]
-      v.qw_rounded 5
-      v.qw_border BW.rgb_color(129, 42, 19), 1.0
-      v.setTitleColor(UIColor.whiteColor, forState:UIControlStateNormal)
-      v.setTitleColor(UIColor.orangeColor, forState:UIControlStateHighlighted)
     when :button_gray
       v.qw_font 'Avenir-Book', 14
       v.backgroundColor = BW.rgb_color(236, 237, 238)

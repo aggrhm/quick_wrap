@@ -109,10 +109,11 @@ module QuickWrap
     end
 
     def self.save_image_from_url(url, &block)
-      SDWebImageManager.sharedManager.downloadWithURL(url, options:0, progress:nil, completed: lambda{|img, error, cacheType, finished|
+      SDWebImageManager.sharedManager.downloadWithURL(url, options: (SDWebImageRetryFailed | SDWebImageRefreshCached), progress:nil, completed: lambda{|img, error, cacheType, finished|
         if img
           self.save_image(img, &block)
         else
+          QW.log(error.localizedDescription) unless error.nil?
           block.call(nil)
         end
       })

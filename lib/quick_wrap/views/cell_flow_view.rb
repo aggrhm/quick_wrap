@@ -17,7 +17,7 @@ module QuickWrap
       @cell_registry = {}
 
       @lbl_placeholder = UILabel.new.qw_subview(self) {|v|
-        v.qw_frame 0, 80, 0, 20
+        v.qw_frame_set 0, 80, 0, 20
         v.qw_resize :width
         v.qw_font :reg_18
         v.qw_colors UIColor.grayColor
@@ -26,7 +26,7 @@ module QuickWrap
       }
 
       @col_view = UICollectionView.alloc.initWithFrame(CGRectZero, collectionViewLayout: CVCustomLayout.new).qw_subview(self) {|v|
-        v.qw_frame 0, 0, 0, 0
+        v.qw_frame_set 0, 0, 0, 0
         v.qw_resize :height, :width
         v.backgroundColor = UIColor.clearColor
         v.delegate = self
@@ -63,10 +63,8 @@ module QuickWrap
     end
 
     def layoutSubviews
-      vw = self.frame.size.width
 
-      @col_view.qw_frame 0, 0, 0, 0
-      #@pnl_selected_scope.qw_frame 0, @col_view.frame.origin.y, 0, 40
+      @col_view.qw_reframe
     end
 
     def configure
@@ -262,6 +260,7 @@ module QuickWrap
 
     def scroll_to_bottom
       offset = @col_view.contentSize.height - @col_view.size.height
+      offset = 0 if offset < 0
       @col_view.setContentOffset([0, offset], animated: true)
     end
 
@@ -293,9 +292,17 @@ module QuickWrap
         @insets
       end
 
+      def max_width
+        @max_width
+      end
+      def max_height
+        @max_height
+      end
+
       def prepareLayout
         super 
         @max_height = 0
+        @max_width = 0
 
         cv = self.collectionView
         return if cv.numberOfSections == 0

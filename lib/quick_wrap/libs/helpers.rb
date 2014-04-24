@@ -58,6 +58,27 @@ module QuickWrap
     end
   end
 
+  def self.pretty_time_str(time_i)
+    now_t = Time.now.localtime
+    time_t = Time.at(time_i).localtime
+    now_i = now_t.to_i
+    diff = now_i - time_i
+    fstr = ""
+
+    if diff < TIME_YEAR
+      if time_t.yday == now_t.yday
+        fstr = "Today"
+      elsif diff < TIME_WEEK
+        fstr = "%A"
+      else
+        fstr = "%b %-m"
+      end
+    else
+      fstr = "%b %-m %Y"
+    end
+    return time_t.strftime("#{fstr}, %l:%M %P")
+  end
+
   def self.label_height(text, width, font)
     if font.is_a? Symbol
       fo = AppDelegate::FONT_STYLES[font]

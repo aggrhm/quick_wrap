@@ -50,7 +50,7 @@ module QuickWrap
       when :image_left_fill
         self.imageView.contentMode = UIViewContentModeScaleAspectFit
         self.imageView.qw_frame 0, 0, img_vw, img_vh
-        self.titleLabel.qw_frame img_vw, 0, 0, 0
+        self.titleLabel.qw_frame img_vw + 2, 0, 0, 0
       when :image_right_fill
         self.imageView.contentMode = UIViewContentModeScaleAspectFit
         self.titleLabel.qw_frame 0, 0, vw - img_vw - 5, 0

@@ -72,9 +72,9 @@ module QuickWrap
 
     def complete
       QuickWrap.log 'Job completed.'
-      self.progress = 1
-      self.runner.job_completed(self)
+      self.update_progress(1)
       self.trigger(:completed)
+      self.runner.job_completed(self)
     end
 
     def is_running?
@@ -95,24 +95,32 @@ module QuickWrap
       vw = frame.size.width
       vh = frame.size.height
 
-      self.qw_bg :green
+      self.qw_bg :white
       self.clipsToBounds = true
 
       @img_view = UIImageView.new.qw_subview(self) {|v|
         v.qw_frame 5, 5, DEFAULT_HEIGHT-10, DEFAULT_HEIGHT-10
-        v.qw_border UIColor.whiteColor, 1.0
+        v.qw_border AppDelegate::COLORS[:bg_view], 1.0
       }
 
       @prog_bar = UIProgressView.new.qw_subview(self) {|v|
-        v.progressTintColor = UIColor.whiteColor
+        v.progressTintColor = AppDelegate::COLORS[:green]
       }
 
       @img_cancel = UIImageView.new.qw_subview(self) {|v|
-        v.image = UIImage.imageNamed 'quick_wrap/close-white'
+        v.image = UIImage.imageNamed 'quick_wrap/close-gray'
+        v.alpha = 0.5
         v.when_tapped {
           self.hide_view
         }
       }
+
+      @ln_btm = UIView.new.qw_subview(self) {|v|
+        v.qw_frame_set :bottom_left, 0, 0, 0, 1
+        v.qw_bg :bg_mid
+        v.qw_resize :top
+      }
+
       return self
     end
 
@@ -122,6 +130,7 @@ module QuickWrap
 
       @prog_bar.qw_frame_rel :right_of, @img_view, 10, vh/2 - 5, -30, 10
       @img_cancel.qw_frame_rel :right_of, @prog_bar, 5, -10, 20, 20
+      @ln_btm.qw_reframe
     end
 
     def runner=(runner)
@@ -134,12 +143,22 @@ module QuickWrap
         }
       else
         @runner.off(:all, self) if @runner
+        @job.off(:all, self) if @job
         @runner = nil
+        self.hide_view
       end
     end
 
     def runner
       @runner
+    end
+
+    def imageView
+      @img_view
+    end
+
+    def progressView
+      @prog_bar
     end
 
     def set_job(job)
@@ -161,7 +180,10 @@ module QuickWrap
       self.set_progress self.job.progress
 
       job.on(:starting, self) { self.show_view }
-      job.on(:completed, self) { self.hide_view }
+      job.on(:completed, self) { 
+        self.hide_view 
+        job.off(:all, self)
+      }
       job.on(:progress_updated, self) {|val|
         self.set_progress(val)
       }

@@ -27,6 +27,11 @@ module QuickWrap
         v.qw_text_align :right
       }
 
+      @ln_bottom = UIView.new.qw_subview(self, false) {|v|
+        v.qw_frame_set :bottom_left, 0, 0, 0, 1
+        v.qw_bg :line
+      }
+
       return self
     end
 
@@ -41,6 +46,7 @@ module QuickWrap
         @img_icon.frame = CGRectZero
       end
       @lbl_subtitle.qw_frame_from :bottom_right, 5, 0, 150, 15
+      @ln_bottom.qw_reframe
     end
 
     def title=(title)

@@ -100,10 +100,16 @@ class UIImage
 
     newRect = CGRectIntegral(CGRectMake(0, 0, newSize.width, newSize.height))
 
-    UIGraphicsBeginImageContextWithOptions(newSize, false, 0)
-    self.drawInRect(newRect)
-    newImage = UIGraphicsGetImageFromCurrentImageContext()
-    UIGraphicsEndImageContext()
+    begin
+      UIGraphicsBeginImageContextWithOptions(newSize, false, 0)
+      self.drawInRect(newRect)
+      newImage = UIGraphicsGetImageFromCurrentImageContext()
+      raise "No image from context" if newImage.nil?
+      UIGraphicsEndImageContext()
+    rescue
+      QW.log newSize.inspect
+      return self
+    end
     return newImage
   end
 

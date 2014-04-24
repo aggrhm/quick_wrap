@@ -68,7 +68,7 @@ module QuickWrap
     end
 
     def push_controller(ctr_cls, &block)
-      ctr = ctr_cls.alloc.initWithNibName(nil, bundle:nil)
+      ctr = ctr_cls.alloc.init
       ctr.delegate = self if ctr.respond_to? 'delegate='
       block.call(ctr) if block
       self.navigationController.pushViewController(ctr, animated:true)

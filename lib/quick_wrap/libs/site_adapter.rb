@@ -1,4 +1,3 @@
-puts "SITEADAPTER LOADING"
 module QuickWrap
 
   module SiteAdapter
