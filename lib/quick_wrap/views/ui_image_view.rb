@@ -16,7 +16,7 @@ class UIImageView
       # load async
       self.image = nil
       trigger :state, :loading
-      SDWebImageManager.sharedManager.downloadWithURL(url, options:0, progress:nil, completed: lambda{|img, error, cacheType, finished|
+      SDWebImageManager.sharedManager.downloadWithURL(url, options: SDWebImageRetryFailed, progress:nil, completed: lambda{|img, error, cacheType, finished|
         if img
           # check if url still the same
           return if url != self.source_url
