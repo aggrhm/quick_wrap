@@ -61,10 +61,10 @@ module QuickWrap
 
       def initWithFrame(frame)
         super
-        #self.backgroundColor = UIColor.blackColor
-        self.setBackground
+        self.qw_bg :white_fade
+        #self.setBackground
         self.qw_resize :width, :height
-        @spinner = UIActivityIndicatorView.alloc.initWithActivityIndicatorStyle(UIActivityIndicatorViewStyleWhiteLarge).qw_subview(self) {|v|
+        @spinner = UIActivityIndicatorView.alloc.initWithActivityIndicatorStyle(UIActivityIndicatorViewStyleGray).qw_subview(self) {|v|
           v.qw_resize :top, :bottom, :left, :right
           v.center = self.center
           v.startAnimating

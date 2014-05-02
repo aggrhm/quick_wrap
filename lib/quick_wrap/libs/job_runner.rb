@@ -134,7 +134,7 @@ module QuickWrap
     end
 
     def runner=(runner)
-      #QuickWrap.log "JOBVIEW : setting runner to #{runner.inspect}"
+      QuickWrap.log "JOBVIEW(#{self.object_id}) : setting runner to #{runner.inspect}"
       if !runner.nil?
         @runner = runner
         self.set_job(@runner.running_job)
@@ -190,14 +190,14 @@ module QuickWrap
     end
 
     def show_view
-      QuickWrap.log 'showing job view'
+      QuickWrap.log "showing job view #{self.object_id}"
       #UIView.animateWithDuration(0.5, animations: lambda {
       self.qw_size(self.superview.size.width, DEFAULT_HEIGHT)
       #})
     end
 
     def hide_view
-      QuickWrap.log 'hiding job view'
+      QuickWrap.log "hiding job view #{self.object_id}"
       #UIView.animateWithDuration(0.5, animations: lambda {
       self.qw_size(nil, 0)
       #})
