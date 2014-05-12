@@ -74,10 +74,18 @@ module QuickWrap
       self.navigationController.pushViewController(ctr, animated:true)
     end
 
+    def navigate_back
+      self.navigationController.popViewControllerAnimated(true)
+    end
+
     def textFieldShouldReturn(tf)
       if tf.returnKeyType == UIReturnKeyDone
         tf.resignFirstResponder
       end
+    end
+
+    def dismiss
+      self.dismissModalViewControllerAnimated(true)
     end
 
     def show_loading

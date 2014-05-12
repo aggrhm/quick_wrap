@@ -104,6 +104,8 @@ module QuickWrap
 
       @value = nil
       @change_fn = nil
+      @process_fn = lambda {|val| val}
+      @is_handling_change = false
 
       self.qw_resize :width
 
@@ -117,6 +119,11 @@ module QuickWrap
 
       @lbl_title = UILabel.new.qw_subview(self) {|v|
         v.qw_resize :width
+      }
+
+      @lbl_help = UILabel.new.qw_subview(self) {|v|
+        v.qw_resize :width
+        v.hidden = true
       }
 
       self.when_tapped {self.form.handle_element_selected(self)}
@@ -144,6 +151,15 @@ module QuickWrap
       @lbl_title
     end
 
+    def help_label
+      @lbl_help
+    end
+
+    def help_text=(val)
+      @lbl_help.hidden = false
+      @lbl_help.text = val
+    end
+
     def bg_panel
       @panel_bg
     end
@@ -153,16 +169,22 @@ module QuickWrap
     end
 
     def value=(val)
-      @value = val
-      self.handle_value_changed(val)
+      @value = @process_fn.call(val)
+      self.handle_value_changed(@value) unless @is_handling_change
     end
 
     def on_change(&block)
       @change_fn = block
     end
 
+    def process_change(&block)
+      @process_fn = block
+    end
+
     def handle_value_changed(val)
+      @is_handling_change = true
       @change_fn.call(val) if @change_fn
+      @is_handling_change = false
     end
 
     def title=(val)
@@ -351,6 +373,31 @@ module QuickWrap
     def default_style
       :form_element_date
     end
+  end
+
+  class FormSwitch < FormElement
+
+    def initWithFrame(frame)
+      super
+
+      @switch_view = UISwitch.new.qw_subview(self) {|v|
+        v.when(UIControlEventValueChanged) {
+          self.value = @switch_view.isOn
+        }
+      }
+
+      return self
+    end
+
+    def switch_view
+      @switch_view
+    end
+
+    def value=(val)
+      super
+      @switch_view.on = @value
+    end
+
   end
 
   class FormImage < FormElement
