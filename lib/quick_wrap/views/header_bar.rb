@@ -27,9 +27,10 @@ module QuickWrap
         v.qw_text_align :right
       }
 
-      @ln_bottom = UIView.new.qw_subview(self, false) {|v|
+      @ln_bottom = UIView.new.qw_subview(self) {|v|
         v.qw_frame_set :bottom_left, 0, 0, 0, 1
         v.qw_bg :line
+        v.hidden = true
       }
 
       return self
@@ -68,6 +69,10 @@ module QuickWrap
 
     def title_label
       @lbl_title
+    end
+
+    def line_bottom
+      @ln_bottom
     end
 
     def add_button(title, action, opts={}, &block)

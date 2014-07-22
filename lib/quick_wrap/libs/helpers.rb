@@ -79,10 +79,10 @@ module QuickWrap
     return time_t.strftime("#{fstr}, %l:%M %P")
   end
 
-  def self.label_height(text, width, font)
+  def self.label_height(text, width, font, size=nil)
     if font.is_a? Symbol
       fo = AppDelegate::FONT_STYLES[font]
-      font = UIFont.fontWithName(fo[0], size: fo[1])
+      font = UIFont.fontWithName(fo[0], size: size || fo[1])
     end
     body_h = text.sizeWithFont(font, constrainedToSize: CGSizeMake(width, 1000), lineBreakMode: UILineBreakModeWordWrap).height
   end
@@ -108,6 +108,30 @@ module QuickWrap
 
   def self.cache
     @cache ||= Hash.new
+  end
+
+  def self.pluralize(num, sing, plur)
+    if num == 1
+      return sing
+    else
+      return plur
+    end
+  end
+
+  def self.truncate(str, len=50)
+    str.length > len ? "#{str[0..len]}..." : str
+  end
+
+  def self.blank?(val)
+    val.nil? || val == ""
+  end
+
+  def self.color(c)
+    if c.is_a?(Symbol)
+      AppDelegate::COLORS[c]
+    else
+      c
+    end
   end
 
 end

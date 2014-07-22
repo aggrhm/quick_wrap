@@ -3,46 +3,80 @@ module QuickWrap
   class JobRunner
     include Eventable
 
-    def initialize
-
+    def initialize(opts={})
+      @options = {
+        max_concurrent: 10,
+        allow_queuing: true
+      }
+      @options.merge!(opts)
       @jobs = []
-      @running_job = nil
+    end
 
+    def jobs
+      @jobs
+    end
+
+    def jobs_with_state(state)
+      @jobs.select {|j| j.state == state}
+    end
+
+    def job_count(state)
+      self.jobs_with_state(state).length
+    end
+
+    def has_jobs?
+      @jobs.any? {|j| j.state != :done }
     end
 
     def add_to_queue(task_block, opts)
+      # prepare job
       job_opts = opts[:job_opts] || {}
       job = Job.new(self)
       job.image = opts[:image]
       job.run_block = task_block
       job.delegate = opts[:delegate]
       job.opts = job_opts
-      @jobs << job
 
-      if @running_job.nil?
-        self.run_next
+      # add if any spots for running or can queue
+      if self.job_count(:running) < @options[:max_concurrent] || @options[:allow_queuing]
+        @jobs << job
+        self.process_jobs
+        return job
+      else
+        return nil
       end
-
-      return job
     end
 
-    def run_next
-      if @jobs.empty?
-        @running_job = nil
-      else
-        @running_job = @jobs.shift
-        self.trigger :job_starting, @running_job
-        @running_job.run
+    def process_jobs
+      return if @jobs.empty?
+
+      rjs = self.jobs_with_state(:running)
+      wjs = self.jobs_with_state(:waiting)
+      while ( (self.job_count(:running) < @options[:max_concurrent]) && (self.job_count(:waiting) > 0) ) do
+        # run any waiting jobs
+        nj = self.jobs_with_state(:waiting).first
+        self.trigger :job_starting, nj
+        nj.bg_id = UIApplication.sharedApplication.beginBackgroundTaskWithExpirationHandler lambda {
+          UIApplication.sharedApplication.endBackgroundTask(nj.bg_id) if nj.bg_id
+          nj.state = :done
+        }
+        nj.run
       end
+    end
+
+    def clean_jobs
+      @jobs.delete_if {|j| j.state == :done}
     end
 
     def job_completed(job)
       self.trigger :job_completed, job
-      self.run_next
+      self.clean_jobs
+      self.process_jobs
+      UIApplication.sharedApplication.endBackgroundTask(job.bg_id) if job.bg_id
     end
 
-    def running_job
-      @running_job
+    def latest_running_job
+      self.jobs_with_state(:running).last
     end
 
     def add_view_to(superview, delegate)
@@ -53,14 +87,16 @@ module QuickWrap
   class Job
     include Eventable
 
-    attr_accessor :delegate, :image, :progress, :run_block, :runner, :opts
+    attr_accessor :delegate, :image, :progress, :run_block, :runner, :opts, :state, :bg_id
 
     def initialize(runner)
       self.runner = runner
       self.progress = 0
+      self.state = :waiting
     end
 
     def run
+      self.state = :running
       self.trigger(:starting)
       EM.schedule_on_main { self.run_block.call(self) }
     end
@@ -73,12 +109,13 @@ module QuickWrap
     def complete
       QuickWrap.log 'Job completed.'
       self.update_progress(1)
+      self.state = :done
       self.trigger(:completed)
       self.runner.job_completed(self)
     end
 
     def is_running?
-      self.runner.running_job == self
+      self.state == :running
     end
 
   end
@@ -101,6 +138,7 @@ module QuickWrap
       @img_view = UIImageView.new.qw_subview(self) {|v|
         v.qw_frame 5, 5, DEFAULT_HEIGHT-10, DEFAULT_HEIGHT-10
         v.qw_border AppDelegate::COLORS[:bg_view], 1.0
+        v.qw_content_fill
       }
 
       @prog_bar = UIProgressView.new.qw_subview(self) {|v|
@@ -137,9 +175,12 @@ module QuickWrap
       QuickWrap.log "JOBVIEW(#{self.object_id}) : setting runner to #{runner.inspect}"
       if !runner.nil?
         @runner = runner
-        self.set_job(@runner.running_job)
+        self.set_job(@runner.latest_running_job) if @runner.has_jobs?
         @runner.on(:job_starting, self) {|job|
           self.set_job(job)
+        }
+        @runner.on(:job_completed, self) {|job|
+          self.hide_view if !@runner.has_jobs?
         }
       else
         @runner.off(:all, self) if @runner
@@ -162,27 +203,27 @@ module QuickWrap
     end
 
     def set_job(job)
+      return if job.nil?
+      QW.log "JOBVIEW: updating job view"
+      # cleanup
       self.job.off(:all, self) if self.job
-
-      if job.nil?
-        return
-      end
 
       self.show_view
 
       self.job = job
       if self.job.image.is_a? UIImage
-        @img_view.image = self.job.image.croppedToSize(@img_view.size)
+        @img_view.image = self.job.image
       else
         @img_view.source_url = self.job.image
         @img_view.load_from_url
       end
       self.set_progress self.job.progress
 
-      job.on(:starting, self) { self.show_view }
+      #job.on(:starting, self) { self.show_view }
       job.on(:completed, self) { 
-        self.hide_view 
         job.off(:all, self)
+        # pick next running job unless there is one waiting
+        self.set_job(@runner.latest_running_job) unless @runner.job_count(:waiting) > 0
       }
       job.on(:progress_updated, self) {|val|
         self.set_progress(val)
