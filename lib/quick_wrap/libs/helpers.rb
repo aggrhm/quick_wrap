@@ -134,6 +134,10 @@ module QuickWrap
     end
   end
 
+  def self.image(c)
+    AppDelegate::IMAGES[c]
+  end
+
 end
 
 QW = QuickWrap
