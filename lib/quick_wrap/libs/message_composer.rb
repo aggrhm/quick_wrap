@@ -45,7 +45,7 @@ module QuickWrap
       @ctr = MFMessageComposeViewController.alloc.init
       @ctr.messageComposeDelegate = self
       @ctr.recipients = @options[:recipients]
-      @ctr.body = body
+      @ctr.body = @options[:body]
       self.retain
     end
 

@@ -19,6 +19,10 @@ module QuickWrap
     puts str if debug?
   end
 
+  def self.can_send_text?
+    MFMessageComposeViewController.canSendText
+  end
+
   def self.time_ago_str(input_time)
     test_s = input_time
     now_s = Time.now.utc.to_i
@@ -136,6 +140,18 @@ module QuickWrap
 
   def self.image(c)
     AppDelegate::IMAGES[c]
+  end
+  def self.image_path(c)
+    AppDelegate::IMAGES[c]
+  end
+
+  module WeakDelegate
+    def delegate=(del)
+      @delegate = WeakRef.new(del)
+    end
+    def delegate
+      @delegate
+    end
   end
 
 end

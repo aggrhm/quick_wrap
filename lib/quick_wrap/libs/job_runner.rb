@@ -86,8 +86,9 @@ module QuickWrap
 
   class Job
     include Eventable
+    include WeakDelegate
 
-    attr_accessor :delegate, :image, :progress, :run_block, :runner, :opts, :state, :bg_id
+    attr_accessor :image, :progress, :run_block, :runner, :opts, :state, :bg_id
 
     def initialize(runner)
       self.runner = runner
@@ -121,8 +122,9 @@ module QuickWrap
   end
 
   class JobView < UIView
+    include WeakDelegate
 
-    attr_accessor :delegate, :job
+    attr_accessor :job
 
     DEFAULT_HEIGHT = 60
 

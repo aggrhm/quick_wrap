@@ -26,6 +26,7 @@ module QuickWrap
     def self.included(base)
       #base.send :extend, ClassMethods
       base.send :include, QuickWrap::Eventable
+      base.send :include, QuickWrap::WeakDelegate
     end
 
     def observe_keyboard

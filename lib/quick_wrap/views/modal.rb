@@ -1,8 +1,9 @@
 module QuickWrap
 
   class Modal < UIView
+    include WeakDelegate
 
-    attr_accessor :delegate, :selector, :backdropView, :modalView, :contentView, :headerView, :parent
+    attr_accessor :selector, :backdropView, :modalView, :contentView, :headerView, :parent
 
     include Eventable
 
@@ -49,10 +50,15 @@ module QuickWrap
         v.when_tapped { self.hide }
       }
 
+      self.configure
       self.build_view
 
       self.hidden = true
       return self
+    end
+
+    def configure
+
     end
 
     def load_for(parent)
@@ -99,7 +105,7 @@ module QuickWrap
       self.reset_frame
       self.layoutSubviews
       self.will_show
-      UIView.animateWithDuration(0.2,
+      UIView.animateWithDuration(0.3,
         animations: lambda {
           self.alpha = 1.0
           @modal_opts[:blur].qw_blur if @modal_opts[:blur]

@@ -2,8 +2,9 @@ module QuickWrap
 
   class CellFlowView < UIView
     include QuickWrap::Eventable
+    include QuickWrap::WeakDelegate
 
-    attr_accessor :delegate, :options, :rows, :selected_scope
+    attr_accessor :options, :rows, :selected_scope
 
     def initWithFrame(frame)
       super
@@ -106,7 +107,7 @@ module QuickWrap
     def register_pull_to_refresh_handler(block)
       @col_view.addPullToRefreshWithActionHandler block
       @col_view.pullToRefreshView.titles = ['Pull to update...', 'Release to update...', 'Updating...']
-      @col_view.pullToRefreshView.titleLabel.qw_font 'Avenir-Book', 14
+      @col_view.pullToRefreshView.titleLabel.qw_font 'Avenir-Book', 12
     end
 
     def observe_app_events
@@ -210,7 +211,7 @@ module QuickWrap
     end
 
     def handle_cell_gesture(ident, gesture, cell)
-      self.delegate.handle_cell_gesture(ident, gesture, cell, self) if self.delegate.respond_to?(:handle_cell_gesture)
+      @delegate.handle_cell_gesture(ident, gesture, cell, self) if self.delegate.respond_to?(:handle_cell_gesture)
     end
 
     def handle_post_created(data)

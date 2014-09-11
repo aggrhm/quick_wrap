@@ -1,10 +1,9 @@
 module QuickWrap
 
-  # TODO: add section panel where you give height and number of fields and it draws with border and separator lines
-
   class Form < UIScrollView
+    include QW::WeakDelegate
 
-    attr_accessor :elements, :selected_element, :delegate
+    attr_accessor :elements, :selected_element
 
     def initWithFrame(frame)
       super
@@ -33,6 +32,9 @@ module QuickWrap
     def [](key)
       self.elements[key].value
     end
+    def []=(key, val)
+      self.elements[key].value = val
+    end
 
     def update_size
       content_views = self.subviews.select{|v| v.tag == 1}
@@ -41,13 +43,28 @@ module QuickWrap
       self.contentSize = CGSizeMake(widths.max, heights.max)
     end
 
-    def handle_element_selected(element)
+    def handle_element_gesture(key, gesture, element)
+      self.set_element_focus(element)
+    end
+
+    def set_element_focus(element)
       self.elements.values.each do |el|
         el.handle_blur unless el == element
       end
       element.handle_focus
       self.selected_element = element
+      self.setNeedsLayout
       App.run_after(0.5) { self.scroll_to_element(element) }
+    end
+
+    def set_element_blur(element)
+      element.handle_blur
+      self.selected_element = nil
+      self.setNeedsLayout
+    end
+
+    def blur
+      self.set_element_blur(self.selected_element) unless self.selected_element.nil?
     end
 
     def show_date_picker(date_val, mode=UIDatePickerModeDateAndTime)
@@ -83,7 +100,7 @@ module QuickWrap
       idx = self.elements.values.index(self.selected_element)
       el = self.elements.values[idx+1]
       if el
-        self.handle_element_selected(el)
+        self.set_element_focus(el)
       end
     end
 
@@ -91,6 +108,13 @@ module QuickWrap
       element ||= @selected_element
       return if element.nil?
       self.scrollRectToVisible(element.frame, animated: true)
+    end
+
+    def observe_app_events
+    end
+
+    def unobserve_app_events
+      App.delegate.off(:all, self)
     end
 
   end
@@ -103,9 +127,11 @@ module QuickWrap
       super
 
       @value = nil
+      @enabled = true
       @change_fn = nil
       @process_fn = lambda {|val| val}
       @is_handling_change = false
+      @has_focus = false
 
       self.qw_resize :width
 
@@ -126,7 +152,11 @@ module QuickWrap
         v.hidden = true
       }
 
-      self.when_tapped {self.form.handle_element_selected(self)}
+      @ln_bottom = UIView.new.qw_subview(self) {|v|
+        v.qw_resize :top
+      }
+
+      self.when_tapped {self.form.handle_element_gesture(self.key, :tapped, self)}
 
       return self
     end
@@ -135,16 +165,40 @@ module QuickWrap
       self.qw_layout_subviews
     end
 
+    def focus
+      self.form.set_element_focus(self)
+    end
+
+    def blur
+      self.form.set_element_blur(self)
+    end
+
     def handle_focus
-      App.run_after(0.5) { self.form.scroll_to_element(self) }
     end
 
     def handle_blur
+    end
 
+    def has_focus?
+      self.form.selected_element == self
+    end
+
+    def enabled?
+      @enabled == true
+    end
+
+    def enabled=(val)
+      @enabled = val
+      self.blur if val == false && self.has_focus?
+      self.setNeedsLayout
     end
 
     def form
       self.superview
+    end
+
+    def send_gesture(gest)
+      self.form.handle_element_gesture(key, gest, self)
     end
 
     def title_label
@@ -153,6 +207,10 @@ module QuickWrap
 
     def help_label
       @lbl_help
+    end
+
+    def line
+      @ln_bottom
     end
 
     def help_text=(val)
@@ -170,20 +228,21 @@ module QuickWrap
 
     def value=(val)
       @value = @process_fn.call(val)
-      self.handle_value_changed(@value) unless @is_handling_change
+      self.handle_value_changed
     end
 
     def on_change(&block)
       @change_fn = block
     end
 
-    def process_change(&block)
+    def process_value(&block)
       @process_fn = block
     end
 
-    def handle_value_changed(val)
+    def handle_value_changed
+      return if @is_handling_change == true
       @is_handling_change = true
-      @change_fn.call(val) if @change_fn
+      @change_fn.call(@value) if @change_fn
       @is_handling_change = false
     end
 
@@ -245,7 +304,7 @@ module QuickWrap
     end
 
     def textFieldDidBeginEditing(tv)
-      self.form.handle_element_selected(self)
+      self.send_gesture(:entered)
     end
 
     def textFieldShouldReturn(tv)
@@ -265,9 +324,6 @@ module QuickWrap
       @txt_view.text = val
     end
 
-    def default_style
-      :form_element_text
-    end
   end
 
   class FormTextView < FormElement
@@ -294,7 +350,7 @@ module QuickWrap
     end
 
     def textViewDidBeginEditing(tv)
-      self.form.handle_element_selected(self)
+      self.send_gesture(:entered)
     end
 
     def value
@@ -306,9 +362,6 @@ module QuickWrap
       @txt_view.text = val
     end
 
-    def default_style
-      :form_element_text
-    end
   end
 
   class FormButton < FormElement

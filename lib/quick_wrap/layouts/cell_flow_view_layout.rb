@@ -11,23 +11,41 @@ module QuickWrap
       insets = col_view.collectionViewLayout.inset
       spacing = col_view.collectionViewLayout.spacing
       vw = col_view.frame.size.width
-      vwt = vw - insets.left - insets.right - (cells_per_row - 1) * spacing
+      vwr = vw - insets.left - insets.right
+      vwt = vwr - (cells_per_row - 1) * spacing
 
       # determine tile size
       tw = (vwt / cells_per_row).to_i
       th = tw
       cx = insets.left
       cy = insets.top
+      cxt = cx
+      cyt = cy
 
       rows.each do |row|
-        if cx + tw > (vw - insets.right)
+        if row[:type].to_s.include?("header")
+          rw = row[:width] = vwr
+          cfv.set_scope_layout(row)
+          rh = row[:height]
+          row[:frame] = CGRectMake(cx, cy, rw, rh)
           cx = insets.left
-          cy += th + spacing
+          cy += (rh + spacing)
+          cxt = cx
+          cyt = cy
+        else
+          row[:width] = tw
+          cfv.set_scope_layout(row)
+          row[:frame] = CGRectMake(cxt, cyt, tw, th)
+          cxt = cxt + tw + spacing
+          if (cxt + tw) > vw - insets.right
+            cxt = insets.left
+            cyt += (th + spacing)
+            cy = cyt
+          else
+            cy = cyt + th + spacing
+          end
         end
-        row[:frame] = CGRectMake(cx, cy, tw, th)
-        cx += tw + spacing
       end
-      #QuickWrap.log rows.inspect
 
     end
 
@@ -66,15 +84,17 @@ module QuickWrap
       rows.each do |row|
         if row[:type] == opts[:header_type]
           # this is header row
-          rw = vwi
-          rh = cfv.heightForScope(row, rw)
+          rw = row[:width] = vwi
+          cfv.set_scope_layout(row)
+          rh = row[:height]
           cx = insets.left
           max = heights.max
           cy = max
           heights.each_index {|i| heights[i] = (max + rh + spacing)}
         else
-          rw = tw
-          rh = cfv.heightForScope(row, rw)
+          rw = row[:width] = tw
+          cfv.set_scope_layout(row)
+          rh = row[:height]
           col_idx = heights.index(heights.min)
           cx = insets.left + (rw + spacing) * col_idx
           cy = heights[col_idx]

@@ -1,5 +1,9 @@
 class UIView
 
+  def weak_ref
+    WeakRef.new(self)
+  end
+
   def qw_subview(superview, do_add=true, &block)
     self.qw_superview = superview
     #self.qw_resize :width, :height
@@ -9,7 +13,7 @@ class UIView
   end
 
   def qw_superview=(superview)
-    @qw_superview = superview
+    @qw_superview = WeakRef.new(superview)
   end
 
   def qw_superview
@@ -306,6 +310,13 @@ class UIView
     self.subviews.each do |view|
       view.qw_reframe unless view.qw_frame_opts.nil?
     end
+  end
+
+  def qw_center
+    f = self.frame
+    f.origin.x = ((self.qw_superview.size.width / 2.0) - (f.size.width / 2.0)).to_i
+    f.origin.y = ((self.qw_superview.size.height / 2.0) - (f.size.height / 2.0)).to_i
+    self.frame = f
   end
 
   def qw_center_x(y=nil)
